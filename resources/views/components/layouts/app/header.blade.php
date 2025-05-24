@@ -35,6 +35,13 @@
                     {{ __('Receitas') }}
                 </flux:navlist.item>
 
+                <flux:navbar.item :href="route('vehicles.index')" :current="request()->routeIs('vehicles.*')" wire:navigate>
+                    <x-slot:icon>
+                        {{-- Ícone para Veículos: ph:car-fill ou mdi:car-cog ou lucide:car --}}
+                        <span class="icon-[ph--car-fill] w-5 h-5"></span>
+                    </x-slot:icon>
+                    {{ __('Veículos') }}
+                </flux:navbar.item>
 
                 {{-- FIM DOS LINKS ADICIONADOS --}}
 
@@ -155,6 +162,14 @@
                     <flux:navlist.item :href="route('users.index')" :current="request()->routeIs('users.*')" wire:navigate>
                         <x-slot:icon><span class="icon-[mdi--account-group-outline] w-5 h-5"></span></x-slot:icon>
                         {{ __('Usuários') }}
+                    </flux:navlist.item>
+
+
+                    <flux:navlist.item :href="route('vehicles.index')" :current="request()->routeIs('vehicles.*')" wire:navigate>
+                        <x-slot:icon>
+                            <span class="icon-[ph--car-fill] w-5 h-5"></span>
+                        </x-slot:icon>
+                        {{ __('Veículos') }}
                     </flux:navlist.item>
 
 

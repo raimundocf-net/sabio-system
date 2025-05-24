@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Vehicle;
+use App\Policies\VehiclePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use App\Models\User; // Modelo de Usuário
@@ -17,6 +19,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Prescription::class => PrescriptionPolicy::class,
+        Vehicle::class => VehiclePolicy::class,
     ];
 
     /**

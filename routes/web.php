@@ -10,6 +10,8 @@ use App\Livewire\Units\IndexUnit;
 use App\Livewire\Units\ManageUnit;
 use App\Livewire\Users\IndexUser;
 use App\Livewire\Users\ManageUser;
+use App\Livewire\Vehicles\IndexVehicle;
+use App\Livewire\Vehicles\ManageVehicle;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt; // Para as rotas de Configurações
 
@@ -65,7 +67,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{prescription}/image-pdf', [\App\Http\Controllers\PrescriptionViewController::class, 'showImageAsPdf'])->name('image.pdf'); // Middleware 'auth' já está no grupo pai
     });
 
-
+    // >>> INÍCIO: Novas Rotas para Veículos <<<
+    Route::prefix('vehicles')->name('vehicles.')->group(function () {
+        // A permissão 'manage-vehicles' será definida no AuthServiceProvider.
+        // Ou podemos usar a policy VehiclePolicy se preferirmos mais granularidade.
+        Route::get('/', IndexVehicle::class)->name('index')->can('viewAny', \App\Models\Vehicle::class);
+        Route::get('/create', ManageVehicle::class)->name('create')->can('create', \App\Models\Vehicle::class);
+        Route::get('/{vehicle}/edit', ManageVehicle::class)->name('edit')->can('update', 'vehicle');
+    });
+    // >>> FIM: Novas Rotas para Veículos <<<
 
 
 
