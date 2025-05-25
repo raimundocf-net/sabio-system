@@ -32,8 +32,9 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>">
             <option value=""><?php echo e(__('Selecione...')); ?></option>
-            <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $procedureTypeOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $value => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?> 
-            <option value="<?php echo e($value); ?>"><?php echo e($label); ?></option>
+            
+            <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $procedureTypeOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $value => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <option value="<?php echo e($value); ?>"><?php echo e($label); ?></option>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><!--[if ENDBLOCK]><![endif]-->
         </select>
         <!--[if BLOCK]><![endif]--><?php $__errorArgs = ['form.procedure_type'];
@@ -101,8 +102,9 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>">
             <option value=""><?php echo e(__('UF')); ?></option>
-            <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $stateOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $value => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?> 
-            <option value="<?php echo e($value); ?>"><?php echo e($label); ?></option>
+            
+            <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $stateOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $value => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <option value="<?php echo e($value); ?>"><?php echo e($label); ?></option>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><!--[if ENDBLOCK]><![endif]-->
         </select>
         <!--[if BLOCK]><![endif]--><?php $__errorArgs = ['form.destination_state'];

@@ -6,10 +6,6 @@ use App\Livewire\Prescriptions\EditPrescription;
 use App\Livewire\Prescriptions\ListPrescriptions;
 use App\Livewire\Prescriptions\Request\PrescriptionFormStep;
 use App\Livewire\Prescriptions\Request\SearchCitizenStep;
-use App\Livewire\TravelRequests\SearchCitizenForTravelStep;
-use App\Livewire\TravelRequests\TravelRequestFormStep;
-use App\Livewire\TravelRequests\EditTravelRequest;
-use App\Livewire\TravelRequests\IndexTravelRequest;
 use App\Livewire\Units\IndexUnit;
 use App\Livewire\Units\ManageUnit;
 use App\Livewire\Users\IndexUser;
@@ -91,7 +87,41 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Travel Requests Module
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('travel-requests')->name('travel-requests.')->group(function () {
+        Route::get('/', \App\Livewire\TravelRequests\IndexTravelRequest::class)->name('index')
+            ->can('viewAny', \App\Models\TravelRequest::class);
 
+        // Etapa 1: Busca de cidadão
+        Route::get('/create/search-citizen', \App\Livewire\TravelRequests\SearchCitizenForTravel::class)
+            ->name('create.search-citizen')
+            ->can('create', \App\Models\TravelRequest::class);
+
+        // Etapa 2: Formulário de solicitação (após selecionar o cidadão)
+        // O parâmetro {citizen} permitirá o Route Model Binding
+        Route::get('/create/form/{citizen}', \App\Livewire\TravelRequests\TravelRequestForm::class)
+            ->name('create.form')
+            ->can('create', \App\Models\TravelRequest::class);
+
+        Route::get('/{travelRequest}/edit', \App\Livewire\TravelRequests\EditTravelRequest::class)
+            ->name('edit')
+            ->can('update', 'travelRequest'); // 'travelRequest' é o nome do parâmetro para RMB
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Boarding Locations Module (Locais de Embarque)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('boarding-locations')->name('boarding-locations.')->group(function () {
+        Route::get('/', \App\Livewire\BoardingLocations\IndexBoardingLocation::class)->name('index');
+        Route::get('/create', \App\Livewire\BoardingLocations\ManageBoardingLocation::class)->name('create');
+        Route::get('/{boardingLocation}/edit', \App\Livewire\BoardingLocations\ManageBoardingLocation::class)->name('edit');
+    });
 
 
 }); // Fim do grupo principal Route::middleware(['auth'])

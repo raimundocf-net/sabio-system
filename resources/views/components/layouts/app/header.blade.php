@@ -47,7 +47,22 @@
                     </flux:navbar.item>
                 @endcan
 
-    
+                @can('viewAny', \App\Models\TravelRequest::class)
+                    <flux:navbar.item :href="route('travel-requests.index')" :current="request()->routeIs('travel-requests.*')" wire:navigate>
+                        <x-slot:icon>
+                            {{-- Ícone para Solicitações de Viagem: mdi:clipboard-text-clock-outline, mdi:car-clock, ph:path-bold --}}
+                            <span class="icon-[mdi--clipboard-text-clock-outline] w-5 h-5"></span>
+                        </x-slot:icon>
+                        {{ __('Solicitações de Viagem') }}
+                    </flux:navbar.item>
+                @endcan
+
+                <flux:navbar.item :href="route('boarding-locations.index')" :current="request()->routeIs('boarding-locations.*')" wire:navigate>
+                    <x-slot:icon>
+                        <span class="icon-[mdi--map-marker-path] w-5 h-5"></span>
+                    </x-slot:icon>
+                    {{ __('Locais de Embarque') }}
+                </flux:navbar.item>
 
             </flux:navbar>
 

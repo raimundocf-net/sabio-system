@@ -7,7 +7,7 @@ enum ProcedureType: string
     case CONSULTATION = 'consultation';
     case EXAM = 'exam';
     case RETURN_APPOINTMENT = 'return_appointment';
-    case OTHER = 'other'; // Adicionando uma opção "Outro" para flexibilidade
+    case OTHER = 'other';
 
     public function label(): string
     {

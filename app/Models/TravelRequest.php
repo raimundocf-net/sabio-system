@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use App\Enums\ProcedureType;
+
 use App\Enums\TravelRequestStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class TravelRequest extends Model
 {
@@ -37,7 +39,6 @@ class TravelRequest extends Model
         'cancelled_at',
         'number_of_passengers',
         'observations',
-        // vehicle_id e driver_id não estão aqui por enquanto
     ];
 
     protected $casts = [
@@ -51,46 +52,25 @@ class TravelRequest extends Model
         'number_of_passengers' => 'integer',
     ];
 
-    /**
-     * O cidadão (paciente) principal desta solicitação de viagem.
-     */
     public function citizen(): BelongsTo
     {
         return $this->belongsTo(Citizen::class);
     }
 
-    /**
-     * O usuário (atendente) que registrou esta solicitação.
-     */
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requester_id');
     }
 
-    /**
-     * O usuário (gerente/admin) que aprovou ou rejeitou esta solicitação.
-     */
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approver_id');
     }
 
-    // Se, no futuro, você adicionar vehicle_id e driver_id diretamente aqui:
-    // public function vehicle(): BelongsTo
-    // {
-    //     return $this->belongsTo(Vehicle::class);
-    // }
-
-    // public function driver(): BelongsTo
-    // {
-    //     return $this->belongsTo(User::class, 'driver_id');
-    // }
-
-    // Acessor para a URL da imagem da guia (se você usar o storage link)
     public function getReferralDocumentUrlAttribute(): ?string
     {
-        if ($this->referral_document_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($this->referral_document_path)) {
-            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->referral_document_path);
+        if ($this->referral_document_path && Storage::disk('public')->exists($this->referral_document_path)) {
+            return Storage::disk('public')->url($this->referral_document_path);
         }
         return null;
     }
