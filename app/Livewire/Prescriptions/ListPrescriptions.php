@@ -21,30 +21,42 @@ class ListPrescriptions extends Component
     public ?string $filterStatus = null;
     public string $searchTerm = '';
 
+    // Modal de Cancelamento
     public ?Prescription $cancellingPrescription = null;
     public bool $showCancelModal = false;
     public string $cancellationReason = '';
 
-    protected $rules = [
-        'cancellationReason' => 'required|string|min:10|max:255',
-    ];
+    // Modal de "Pronta para Retirada"
+    public bool $showReadyForPickupModal = false;
+    public ?int $confirmingReadyForPickupPrescriptionId = null;
 
-    protected $messages = [
-        'cancellationReason.required' => 'O motivo do cancelamento é obrigatório.',
+    // Modal de "Entregue"
+    public bool $showDeliveryModal = false;
+    public ?int $deliveringPrescriptionId = null;
+    public string $retrieved_by_name = '';
+    public string $retrieved_by_document = '';
+
+
+    protected function rules(): array
+    {
+        $rules = [
+            'cancellationReason' => 'required_if:showCancelModal,true|string|min:10|max:255',
+            'retrieved_by_name' => 'required_if:showDeliveryModal,true|string|min:3|max:255',
+            'retrieved_by_document' => 'nullable|string|max:50',
+        ];
+        return $rules;
+    }
+
+    protected array $messages = [
+        'cancellationReason.required_if' => 'O motivo do cancelamento é obrigatório.',
         'cancellationReason.min' => 'O motivo deve ter pelo menos 10 caracteres.',
-        'cancellationReason.max' => 'O motivo do cancelamento não pode exceder 255 caracteres.',
+        'retrieved_by_name.required_if' => 'O nome de quem retirou é obrigatório.',
+        'retrieved_by_name.min' => 'O nome de quem retirou deve ter pelo menos 3 caracteres.',
     ];
 
     public function mount()
     {
-        // Opcional: Verificar se o usuário pode ver a lista de qualquer prescrição.
-        // A policy 'viewAny' é verificada automaticamente pela rota ou pode ser chamada aqui.
-        // try {
-        //     $this->authorize('viewAny', Prescription::class);
-        // } catch (AuthorizationException $e) {
-        //     $this->dispatch('notify', ['message' => 'Você não tem permissão para acessar esta página.', 'type' => 'error']);
-        //     return $this->redirectRoute('dashboard', navigate: true); // ou outra rota apropriada
-        // }
+        // ... (código existente do mount)
     }
 
     public function updatedFilterStatus()
@@ -57,6 +69,7 @@ class ListPrescriptions extends Component
         $this->resetPage();
     }
 
+    // --- Lógica para Cancelamento (existente) ---
     public function openCancelModal(Prescription $prescription)
     {
         try {
@@ -65,12 +78,10 @@ class ListPrescriptions extends Component
             $this->dispatch('notify', ['message' => 'Você não tem permissão para iniciar o cancelamento desta solicitação.', 'type' => 'error']);
             return;
         }
-
         if (in_array($prescription->status, [PrescriptionStatus::CANCELLED, PrescriptionStatus::DELIVERED])) {
-            $this->dispatch('notify', ['message' => 'Esta receita não pode mais ser cancelada pois já foi processada ou entregue.', 'type' => 'warning']);
+            $this->dispatch('notify', ['message' => 'Esta receita não pode mais ser cancelada.', 'type' => 'warning']);
             return;
         }
-
         $this->cancellingPrescription = $prescription;
         $this->cancellationReason = '';
         $this->showCancelModal = true;
@@ -81,89 +92,195 @@ class ListPrescriptions extends Component
         $this->showCancelModal = false;
         $this->cancellingPrescription = null;
         $this->cancellationReason = '';
-        $this->resetErrorBag('cancellationReason');
+        $this->resetErrorBag(['cancellationReason']);
     }
 
     public function cancelPrescription()
     {
-        if (!$this->cancellingPrescription) {
-            return;
-        }
-
+        if (!$this->cancellingPrescription) return;
         $this->authorize('cancel', $this->cancellingPrescription);
-        $this->validate();
-
-        // A policy 'cancel' já deve ter feito a verificação de status, mas uma dupla checagem aqui é aceitável.
-        if (in_array($this->cancellingPrescription->status, [PrescriptionStatus::CANCELLED, PrescriptionStatus::DELIVERED])) {
-            $this->dispatch('notify', ['message' => 'Esta receita não pode ser cancelada neste status.', 'type' => 'error']);
-            $this->closeCancelModal();
-            return;
-        }
+        $this->validateOnly('cancellationReason');
 
         $userPerformingAction = Auth::user()?->name ?? 'Sistema';
         $reasonText = "Cancelada por {$userPerformingAction} (" . now()->format('d/m/Y H:i') . "): " . $this->cancellationReason;
         $existingNotes = $this->cancellingPrescription->processing_notes ?? '';
 
         $this->cancellingPrescription->update([
-            'status' => PrescriptionStatus::CANCELLED, // Eloquent handles ->value with casting
+            'status' => PrescriptionStatus::CANCELLED,
             'completed_at' => now(),
             'processing_notes' => !empty($existingNotes) ? $existingNotes . "\n---\n" . $reasonText : $reasonText,
         ]);
 
         $this->dispatch('notify', ['message' => 'Solicitação de receita cancelada com sucesso.', 'type' => 'success']);
         $this->closeCancelModal();
-        $this->resetPage(); // Atualiza a lista
     }
+
+    // --- Lógica para "Pronta para Retirada" ---
+    public function openReadyForPickupModal(int $prescriptionId): void
+    {
+        $prescription = Prescription::find($prescriptionId);
+        if (!$prescription) {
+            $this->dispatch('notify', ['message' => 'Solicitação não encontrada.', 'type' => 'error']);
+            return;
+        }
+        try {
+            $this->authorize('changeStatus', [$prescription, PrescriptionStatus::READY_FOR_PICKUP]);
+        } catch (AuthorizationException $e) {
+            $this->dispatch('notify', ['message' => 'Você não tem permissão para esta ação.', 'type' => 'error']);
+            return;
+        }
+        if ($prescription->status !== PrescriptionStatus::APPROVED_FOR_ISSUANCE) {
+            $this->dispatch('notify', ['message' => 'Ação permitida apenas para receitas Aprovadas para Emissão.', 'type' => 'warning']);
+            return;
+        }
+        $this->confirmingReadyForPickupPrescriptionId = $prescriptionId;
+        $this->showReadyForPickupModal = true;
+    }
+
+    public function closeReadyForPickupModal(): void
+    {
+        $this->showReadyForPickupModal = false;
+        $this->confirmingReadyForPickupPrescriptionId = null;
+    }
+
+    public function confirmReadyForPickup(): void
+    {
+        if (!$this->confirmingReadyForPickupPrescriptionId) return;
+
+        $prescription = Prescription::find($this->confirmingReadyForPickupPrescriptionId);
+        if (!$prescription) {
+            $this->dispatch('notify', ['message' => 'Solicitação não encontrada.', 'type' => 'error']);
+            $this->closeReadyForPickupModal();
+            return;
+        }
+
+        $this->authorize('changeStatus', [$prescription, PrescriptionStatus::READY_FOR_PICKUP]);
+
+        $userPerformingAction = Auth::user()?->name ?? 'Sistema';
+        $note = "Marcada como 'Pronta para Retirada' por {$userPerformingAction} em " . now()->format('d/m/Y H:i') . ".";
+        $existingNotes = $prescription->processing_notes ?? '';
+
+        $prescription->update([
+            'status' => PrescriptionStatus::READY_FOR_PICKUP,
+            'processing_notes' => !empty($existingNotes) ? $existingNotes . "\n---\n" . $note : $note,
+        ]);
+
+        $this->dispatch('notify', ['message' => 'Status atualizado para Pronta para Retirada!', 'type' => 'success']);
+        $this->closeReadyForPickupModal();
+    }
+
+
+    // --- Lógica para "Entregue" ---
+    public function openDeliveryModal(int $prescriptionId): void
+    {
+        $prescription = Prescription::find($prescriptionId);
+        if (!$prescription) {
+            $this->dispatch('notify', ['message' => 'Solicitação não encontrada.', 'type' => 'error']);
+            return;
+        }
+        try {
+            $this->authorize('changeStatus', [$prescription, PrescriptionStatus::DELIVERED]);
+        } catch (AuthorizationException $e) {
+            $this->dispatch('notify', ['message' => 'Você não tem permissão para esta ação.', 'type' => 'error']);
+            return;
+        }
+
+        if ($prescription->status !== PrescriptionStatus::READY_FOR_PICKUP) {
+            $this->dispatch('notify', ['message' => 'Ação permitida apenas para receitas Prontas para Retirada.', 'type' => 'warning']);
+            return;
+        }
+
+        $this->deliveringPrescriptionId = $prescriptionId;
+        $this->retrieved_by_name = '';
+        $this->retrieved_by_document = '';
+        $this->resetErrorBag(['retrieved_by_name', 'retrieved_by_document']);
+        $this->showDeliveryModal = true;
+    }
+
+    public function closeDeliveryModal(): void
+    {
+        $this->showDeliveryModal = false;
+        $this->deliveringPrescriptionId = null;
+        $this->retrieved_by_name = '';
+        $this->retrieved_by_document = '';
+        $this->resetErrorBag(['retrieved_by_name', 'retrieved_by_document']);
+    }
+
+    public function confirmDelivery(): void
+    {
+        if (!$this->deliveringPrescriptionId) return;
+
+        $this->validateOnly('retrieved_by_name');
+        if (!empty($this->retrieved_by_document)) {
+            $this->validateOnly('retrieved_by_document');
+        }
+
+        $prescription = Prescription::find($this->deliveringPrescriptionId);
+        if (!$prescription) {
+            $this->dispatch('notify', ['message' => 'Solicitação não encontrada.', 'type' => 'error']);
+            $this->closeDeliveryModal();
+            return;
+        }
+
+        $this->authorize('changeStatus', [$prescription, PrescriptionStatus::DELIVERED]);
+
+        $userPerformingAction = Auth::user()?->name ?? 'Sistema';
+        $deliveryNote = "Entregue por {$userPerformingAction} em " . now()->format('d/m/Y H:i') . ".";
+        $deliveryNote .= "\nRetirado por: " . trim($this->retrieved_by_name);
+        if (!empty(trim($this->retrieved_by_document))) {
+            $deliveryNote .= " (Doc: " . trim($this->retrieved_by_document) . ")";
+        }
+        $deliveryNote .= ".";
+
+        $existingNotes = $prescription->processing_notes ?? '';
+
+        $prescription->update([
+            'status' => PrescriptionStatus::DELIVERED,
+            'completed_at' => now(),
+            'processing_notes' => !empty($existingNotes) ? $existingNotes . "\n---\n" . $deliveryNote : $deliveryNote,
+        ]);
+
+        $this->dispatch('notify', ['message' => 'Receita marcada como Entregue!', 'type' => 'success']);
+        $this->closeDeliveryModal();
+    }
+
 
     public function render()
     {
+        // ... (código de renderização existente) ...
         $user = Auth::user();
         if (!$user) {
-            // Se não houver usuário logado, o middleware 'auth' já deveria ter bloqueado.
-            // Retornar uma view vazia ou de erro é uma contingência.
             return view('livewire.prescriptions.list-prescriptions', [
                 'prescriptions' => collect()->paginate(12),
                 'statusOptions' => PrescriptionStatus::options(),
             ])->layoutData(['pageTitle' => $this->pageTitle]);
         }
 
-        // A autorização 'viewAny' pode ser feita aqui se não estiver na rota.
-        // try {
-        //     $this->authorize('viewAny', Prescription::class);
-        // } catch (AuthorizationException $e) {
-        //     return view('livewire.forbidden-access'); // Exemplo de view de acesso negado
-        // }
-
         $query = Prescription::with(['citizen', 'requester', 'doctor', 'unit']);
-
-        // Ordenação primária pela data de criação (mais recentes primeiro)
         $query->latest('created_at');
 
-        // Ordenação customizada por status e depois por data de atualização
         $statusOrderValues = [
             PrescriptionStatus::REQUESTED->value,
             PrescriptionStatus::UNDER_DOCTOR_REVIEW->value,
             PrescriptionStatus::APPROVED_FOR_ISSUANCE->value,
-            PrescriptionStatus::REJECTED_BY_DOCTOR->value, // Rejeitadas aparecem antes de prontas/entregues
+            PrescriptionStatus::REJECTED_BY_DOCTOR->value,
             PrescriptionStatus::READY_FOR_PICKUP->value,
             PrescriptionStatus::DELIVERED->value,
             PrescriptionStatus::CANCELLED->value,
-            PrescriptionStatus::DRAFT_REQUEST->value, // Rascunhos por último
+            PrescriptionStatus::DRAFT_REQUEST->value,
         ];
         $statusOrderExpressionParts = [];
         foreach ($statusOrderValues as $index => $statusValue) {
-            $escapedStatusValue = str_replace("'", "''", $statusValue); // Simples escape para aspas
+            $escapedStatusValue = str_replace("'", "''", $statusValue);
             $statusOrderExpressionParts[] = "WHEN '{$escapedStatusValue}' THEN " . ($index + 1);
         }
         $statusOrderExpression = "CASE status " . implode(" ", $statusOrderExpressionParts) . " ELSE " . (count($statusOrderValues) + 1) . " END";
         $query->orderByRaw("{$statusOrderExpression} ASC, updated_at DESC");
 
-        // Aplicar filtro de status
         if ($this->filterStatus) {
             $query->where('status', $this->filterStatus);
         }
 
-        // Aplicar filtro por termo de busca
         if (!empty(trim($this->searchTerm))) {
             $searchTermSQL = '%' . trim($this->searchTerm) . '%';
             $query->where(function ($subQuery) use ($searchTermSQL) {
@@ -177,27 +294,18 @@ class ListPrescriptions extends Component
             });
         }
 
-        // Aplicar filtro de escopo baseado no perfil do usuário
         if ($user->hasRole('acs')) {
-            // ACS só visualiza as próprias receitas
             $query->where('user_id', $user->id);
         } elseif (!$user->hasRole('admin') && !$user->hasRole('manager')) {
-            // Outros perfis (doctor, nurse, receptionist, etc.) que não são admin ou manager,
-            // veem apenas as de sua unidade (se tiverem uma unidade associada).
             if ($user->unit_id) {
                 $query->where('unit_id', $user->unit_id);
             } else {
-                // Se não tem unidade e não é admin/manager/acs, não deve ver nenhuma receita.
-                $query->whereRaw('1 = 0'); // Condição que sempre será falsa
+                $query->whereRaw('1 = 0');
             }
         }
-        // Admins e Managers: Nenhuma restrição de escopo adicional é aplicada aqui,
-        // eles verão todas as receitas (respeitando os filtros de status e busca).
-        // O Gate::before já garante acesso total ao admin.
-        // A PrescriptionPolicy::viewAny para manager retorna true, permitindo ver a lista.
 
         return view('livewire.prescriptions.list-prescriptions', [
-            'prescriptions' => $query->paginate(12), // Ajuste a paginação conforme necessário
+            'prescriptions' => $query->paginate(12),
             'statusOptions' => PrescriptionStatus::options(),
         ]);
     }

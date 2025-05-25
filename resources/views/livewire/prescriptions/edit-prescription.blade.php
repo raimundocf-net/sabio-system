@@ -1,27 +1,25 @@
 <div>
     <x-slot:title>
-        {{ $pageTitle }} {{-- Título da aba do navegador --}}
+        {{ $pageTitle }}
     </x-slot:title>
 
-    {{-- Container Principal do Conteúdo --}}
     <div class="my-6 mx-auto px-2 sm:px-6 lg:px-8 max-w-4xl">
         <div class="bg-white dark:bg-neutral-800 shadow-xl rounded-lg">
 
-            {{-- Cabeçalho da Página (dentro do card) --}}
             <div class="p-4 sm:p-6 border-b dark:border-neutral-700">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-neutral-100">
                         {{ $pageTitle }}
                     </h2>
-                    <a href="{{ route('prescriptions.index') }}" wire:navigate {{-- Ajuste para sua rota de listagem --}}
-                    class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline self-start sm:self-center">
+                    <a href="{{ route('prescriptions.index') }}" wire:navigate
+                       class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline self-start sm:self-center">
                         {{ __('Voltar para Lista') }}
                     </a>
                 </div>
             </div>
 
-            {{-- Seção de Detalhes do Cidadão e Solicitação Original --}}
             <div class="p-4 sm:p-6 border-b dark:border-neutral-700">
+                {{-- ... (seção de detalhes do cidadão e solicitação - permanece igual) ... --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                     <div>
                         <h3 class="text-lg font-medium text-gray-800 dark:text-neutral-100 mb-3">{{ __('Cidadão') }}</h3>
@@ -63,18 +61,19 @@
                     </div>
                 </div>
 
-                {{-- Conteúdo do Pedido Original (Read-only) --}}
+                {{-- Conteúdo do Pedido Original (ACS) - Alterado para Textarea --}}
                 <div class="mt-4 pt-4 border-t dark:border-neutral-700">
-                    <dl>
-                        <dt class="text-sm font-semibold text-gray-700 dark:text-neutral-200 mb-1">{{__('Conteúdo do Pedido Original (ACS):')}}</dt>
-                        <dd class="p-3 bg-gray-100 dark:bg-neutral-700/60 rounded-md max-h-40 overflow-y-auto custom-scrollbar text-sm text-gray-800 dark:text-neutral-200 whitespace-pre-wrap">
-                            {{ $prescription->getOriginal('prescription_details') ?: __('Nenhum detalhe fornecido.') }}
-                        </dd>
-                    </dl>
+                    <label for="originalPrescriptionDetails" class="text-sm font-semibold text-gray-700 dark:text-neutral-200 mb-1 block">{{__('Conteúdo do Pedido Original (ACS):')}}</label>
+                    <textarea id="originalPrescriptionDetails"
+                              rows="6" {{-- Ajuste o número de linhas visíveis conforme necessário --}}
+                              readonly
+                              class="w-full p-2 bg-gray-100 dark:bg-neutral-700/60 rounded-md text-sm text-gray-800 dark:text-neutral-200 border-gray-300 dark:border-neutral-600 focus:ring-0 focus:border-gray-300 dark:focus:border-neutral-600 custom-scrollbar"
+                              style="resize: none; box-shadow: none; cursor: default;" {{-- Estilos para parecer mais com texto estático --}}
+                    >{{ trim($prescription->getOriginal('prescription_details')) ?: __('Nenhum detalhe fornecido.') }}</textarea>
                 </div>
 
-                {{-- Informações de Status e Histórico de Notas --}}
                 <div class="mt-4 pt-4 border-t dark:border-neutral-700 space-y-2">
+                    {{-- ... (status e histórico de notas - permanecem iguais) ... --}}
                     <div>
                         <span class="text-sm font-semibold text-gray-700 dark:text-neutral-200">{{__('Status Atual:')}}</span>
                         <span class="ml-2 px-2.5 py-1 text-xs font-semibold rounded-full {{ $prescription->status->badgeClasses() }}">
@@ -101,19 +100,119 @@
                         </div>
                     </div>
                 @endif
-            </div>
 
-            {{-- Seção de Edição e Ações --}}
+                {{-- SEÇÃO DE IMAGENS EXISTENTES E UPLOAD DE NOVAS --}}
+                <div class="mt-4 pt-4 border-t dark:border-neutral-700">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-neutral-200 mb-2">{{__('Imagens da Receita Anexadas')}}</h4>
+                    @if (!empty($existingImagePaths))
+                        <div class="mb-3">
+                            <p class="text-xs text-gray-600 dark:text-neutral-400 mb-2">{{__('Imagens Atuais:')}}</p>
+                            <div class="flex flex-wrap gap-3">
+                                @foreach ($existingImagePaths as $index => $imagePath)
+                                    @php $imageUrl = Storage::disk('public')->url($imagePath); @endphp
+                                    <div class="relative group w-32 h-32 sm:w-40 sm:h-40" wire:key="existing-img-{{ $index }}">
+                                        @if (!in_array($imagePath, $imagesToRemove))
+                                            <a href="{{ $imageUrl }}" target="_blank"
+                                               class="block w-full h-full p-1 border border-dashed border-gray-300 dark:border-neutral-600 rounded-md hover:border-indigo-500 dark:hover:border-sky-500 transition-colors">
+                                                <img src="{{ $imageUrl }}" alt="{{__('Imagem da receita anexada')}} {{ $index + 1 }}" class="w-full h-full object-contain rounded shadow-sm">
+                                            </a>
+                                            @can('update', $prescription)
+                                                <button type="button" wire:click="markImageForRemoval('{{ $imagePath }}')"
+                                                        class="absolute top-1 right-1 m-0.5 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-700 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                                        title="{{__('Marcar para remover')}}">
+                                                    <span class="icon-[mdi--delete-outline] w-4 h-4"></span>
+                                                </button>
+                                            @endcan
+                                        @else
+                                            {{-- Feedback visual para imagem marcada para remoção --}}
+                                            <div class="w-full h-full border-2 border-dashed border-red-400 dark:border-red-600 rounded-md flex flex-col items-center justify-center bg-red-50 dark:bg-red-900/20 p-2">
+                                                <img src="{{ $imageUrl }}" alt="{{__('Imagem da receita')}} {{ $index + 1 }}" class="max-h-16 w-auto opacity-50 rounded">
+                                                <p class="text-xs text-red-600 dark:text-red-300 mt-1 text-center">{{__('Marcada para remoção')}}</p>
+                                                <button type="button" wire:click="unmarkImageForRemoval('{{ $imagePath }}')"
+                                                        class="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                                                    {{__('Desfazer')}}
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-xs text-gray-500 dark:text-neutral-400 mb-3">{{__('Nenhuma imagem anexada no momento.')}}</p>
+                    @endif
+
+                    {{-- Upload de Novas Imagens (se permitido pela policy e status) --}}
+                    @if(!in_array($prescription->status, [\App\Enums\PrescriptionStatus::DELIVERED, \App\Enums\PrescriptionStatus::CANCELLED]))
+                        @can('update', $prescription)
+                            <div class="mt-4">
+                                <label for="newPrescriptionImagesUpload" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200">
+                                    {{ __('Adicionar Novas Imagens (Máx. 3 no total)') }}
+                                </label>
+                                <div class="mt-2">
+                                    <input type="file" wire:model="newPrescriptionImages" id="newPrescriptionImagesUpload" multiple
+                                           accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                                           class="block w-full text-sm text-gray-900 dark:text-neutral-100 border border-gray-300 dark:border-neutral-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-neutral-700 focus:outline-none
+                                                      file:mr-4 file:py-2 file:px-4 rtl:file:mr-0 rtl:file:ml-4
+                                                      file:rounded-l-lg rtl:file:rounded-l-none rtl:file:rounded-r-lg file:border-0
+                                                      file:text-sm file:font-semibold
+                                                      file:bg-indigo-100 dark:file:bg-sky-700 file:text-indigo-700 dark:file:text-sky-200
+                                                      hover:file:bg-indigo-200 dark:hover:file:bg-sky-600 @error('newPrescriptionImages') border-red-500 dark:border-red-400 @enderror @error('newPrescriptionImages.*') border-red-500 dark:border-red-400 @enderror">
+                                    <div wire:loading wire:target="newPrescriptionImages" class="mt-1 text-xs text-indigo-600 dark:text-sky-400">
+                                        <span class="icon-[svg-spinners--ring-resize] w-4 h-4 inline-block animate-spin"></span>
+                                        {{__('Carregando novas imagens...')}}
+                                    </div>
+                                </div>
+                                @error('newPrescriptionImages') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                                @error('newPrescriptionImages.*') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+                                @if ($newPrescriptionImages)
+                                    <div class="mt-4 space-y-2">
+                                        <p class="text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1">{{__('Pré-visualização das Novas Imagens:')}}</p>
+                                        <div class="flex flex-wrap gap-3">
+                                            @foreach ($newPrescriptionImages as $index => $image)
+                                                @if(method_exists($image, 'temporaryUrl'))
+                                                    <div class="relative group w-24 h-24 sm:w-32 sm:h-32">
+                                                        <img src="{{ $image->temporaryUrl() }}" alt="{{__('Preview da nova imagem')}} {{ $index + 1 }}" class="w-full h-full object-contain rounded border dark:border-neutral-500 shadow-sm">
+                                                        <button type="button" wire:click="removeNewImage({{ $index }})"
+                                                                class="absolute top-0 right-0 m-0.5 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-700 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                                                title="{{__('Remover nova imagem')}} {{ $index + 1 }}">
+                                                            <span class="icon-[mdi--close] w-4 h-4"></span>
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if ($newPrescriptionImages || count($imagesToRemove) > 0)
+                                    <div class="mt-3 text-right">
+                                        <button type="button" wire:click="saveImages" wire:loading.attr="disabled"
+                                                class="inline-flex items-center justify-center rounded-md bg-teal-600 dark:bg-teal-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 dark:hover:bg-teal-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600">
+                                            <span wire:loading wire:target="saveImages" class="icon-[svg-spinners--6-dots-scale-middle] w-4 h-4 mr-1.5 -ml-0.5"></span>
+                                            <span wire:loading.remove wire:target="saveImages">{{ __('Salvar Alterações nas Imagens') }}</span>
+                                            <span wire:loading wire:target="saveImages">{{ __('Salvando Imagens...') }}</span>
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                        @endcan
+                    @endif
+                </div>
+            </div> {{-- Fim da seção de Edição e Ações --}}
+
+
+            {{-- Ações de Mudança de Status e Notas (restante do formulário como antes) --}}
             @if(!in_array($prescription->status, [\App\Enums\PrescriptionStatus::DELIVERED, \App\Enums\PrescriptionStatus::CANCELLED]))
                 <div class="p-4 sm:p-6 space-y-6 border-t dark:border-neutral-700">
-
                     {{-- SEÇÃO PARA ACS EDITAR/CORRIGIR PRESCRIÇÃO --}}
                     @if(Auth::user() && Auth::user()->hasRole('acs') && Auth::user()->id === $prescription->user_id &&
-                        in_array($prescription->status, [
-                            \App\Enums\PrescriptionStatus::REQUESTED,
-                            \App\Enums\PrescriptionStatus::REJECTED_BY_DOCTOR
-                        ])
-                    )
+                       in_array($prescription->status, [
+                           \App\Enums\PrescriptionStatus::REQUESTED,
+                           \App\Enums\PrescriptionStatus::REJECTED_BY_DOCTOR
+                       ])
+                   )
                         @can('update', $prescription)
                             <div class="p-4 border rounded-lg shadow-sm
                                 @if($prescription->status === \App\Enums\PrescriptionStatus::REJECTED_BY_DOCTOR)
@@ -192,93 +291,7 @@
                             </div>
                         @endcan
                     @endif
-                    {{-- FIM DA SEÇÃO DE EDIÇÃO/CORREÇÃO PARA ACS --}}
 
-                    {{-- No arquivo edit-prescription.blade.php --}}
-                    {{-- Dentro da seção de Detalhes do Cidadão e Solicitação Original, após o bloco @if($prescription->processing_notes) --}}
-                    {{-- Ou em um local apropriado onde você queira exibir a imagem da receita --}}
-
-                    @if ($prescription->image_path) {{-- Verifica se existe um caminho de imagem salvo --}}
-                    <div class="mt-4 pt-4 border-t dark:border-neutral-700">
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-neutral-200 mb-2">{{__('Imagem da Receita Anexada:')}}</h4>
-                        <div class="mb-3">
-                            {{-- Pré-visualização da imagem --}}
-                            <a href="{{ $prescription->image_url }}" target="_blank"
-                               class="inline-block p-1 border border-dashed border-gray-300 dark:border-neutral-600 rounded-md hover:border-indigo-500 dark:hover:border-sky-500 transition-colors">
-                                <img src="{{ $prescription->image_url }}" alt="{{__('Preview da receita anexada')}}" class="max-h-48 w-auto rounded shadow-sm">
-                            </a>
-                        </div>
-                        <div class="flex flex-wrap gap-2 items-center">
-                            {{-- Botão para Abrir Imagem em Nova Aba (para visualização e impressão) --}}
-                            <a href="{{ $prescription->image_url }}" target="_blank"
-                               class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-sky-500 dark:hover:bg-sky-400 dark:focus:ring-offset-neutral-800">
-                                <span class="icon-[mdi--arrow-expand-all] w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5"></span>
-                                {{ __('Abrir Imagem (Nova Aba)') }}
-                            </a>
-
-                            {{-- Botão para Remover Imagem --}}
-                            @can('update', $prescription) {{-- Ou uma policy mais específica como 'removeImage' --}}
-                            <button type="button" wire:click="removeAttachedImage"
-                                    wire:confirm="Tem certeza que deseja remover a imagem anexada?"
-                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-neutral-800">
-                                <span class="icon-[mdi--image-remove-outline] w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5"></span>
-                                {{ __('Remover Imagem') }}
-                            </button>
-                            @endcan
-                        </div>
-                    </div>
-                    @else
-                        {{-- Seção para Upload de Nova Imagem (se nenhuma imagem existir) --}}
-                        {{-- Esta seção pode ser combinada com a de "Alterar Imagem" se você preferir --}}
-                        @if(!in_array($prescription->status, [\App\Enums\PrescriptionStatus::DELIVERED, \App\Enums\PrescriptionStatus::CANCELLED]))
-                            @can('update', $prescription)
-                                <div class="mt-4 pt-4 border-t dark:border-neutral-700">
-                                    <h3 class="text-md font-semibold text-gray-900 dark:text-neutral-100 mb-2">{{__('Anexar Imagem da Receita')}}</h3>
-                                    {{-- O código para upload de newPrescriptionImage iria aqui, como no formulário de criação --}}
-                                    {{-- Exemplo simplificado: --}}
-                                    <div>
-                                        <label for="newPrescriptionImageUploadEdit" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200">
-                                            {{ __('Selecionar imagem para anexar') }}
-                                        </label>
-                                        <div class="mt-2">
-                                            <input type="file" wire:model="newPrescriptionImage" id="newPrescriptionImageUploadEdit"
-                                                   accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-                                                   class="block w-full text-sm text-gray-900 dark:text-neutral-100 border border-gray-300 dark:border-neutral-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-neutral-700 focus:outline-none file:mr-4 file:py-2 file:px-4 rtl:file:mr-0 rtl:file:ml-4 file:rounded-l-lg rtl:file:rounded-l-none rtl:file:rounded-r-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 dark:file:bg-sky-700 file:text-indigo-700 dark:file:text-sky-200 hover:file:bg-indigo-200 dark:hover:file:bg-sky-600">
-                                            <div wire:loading wire:target="newPrescriptionImage" class="mt-1 text-xs text-indigo-600 dark:text-sky-400">
-                                                <span class="icon-[svg-spinners--ring-resize] w-4 h-4 inline-block animate-spin"></span>
-                                                {{__('Carregando nova imagem...')}}
-                                            </div>
-                                        </div>
-                                        @error('newPrescriptionImage') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-
-                                        @if ($newPrescriptionImage && method_exists($newPrescriptionImage, 'temporaryUrl'))
-                                            <div class="mt-4">
-                                                <p class="text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1">{{__('Pré-visualização da Nova Imagem:')}}</p>
-                                                <img src="{{ $newPrescriptionImage->temporaryUrl() }}" alt="{{__('Preview da nova receita anexada')}}" class="max-h-48 w-auto rounded-md border dark:border-neutral-600 shadow-sm">
-                                            </div>
-
-
-                                        @endif
-                                        @if ($newPrescriptionImage)
-                                            <div class="mt-3 text-right">
-                                                <button type="button" wire:click="updateAttachedImage" wire:loading.attr="disabled"
-                                                        class="inline-flex items-center justify-center rounded-md bg-teal-600 dark:bg-teal-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 dark:hover:bg-teal-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600">
-                                                    <span wire:loading wire:target="updateAttachedImage" class="icon-[svg-spinners--6-dots-scale-middle] w-5 h-5 mr-1.5 -ml-0.5"></span>
-                                                    <span wire:loading.remove wire:target="updateAttachedImage">{{ __('Salvar Nova Imagem') }}</span>
-                                                    <span wire:loading wire:target="updateAttachedImage">{{ __('Salvando Imagem...') }}</span>
-                                                </button>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endcan
-                        @endif
-                    @endif
-
-                    {{-- A seção de "Adicionar Nota ao Processamento" e "Ações de Mudança de Status" viria abaixo, --}}
-                    {{-- dentro do @if(!in_array($prescription->status, ...)) principal --}}
-
-                    {{-- Adicionar Nota ao Processamento (para outros perfis, ou ACS em outros status se permitido) --}}
                     @if(!(Auth::user() && Auth::user()->hasRole('acs') && in_array($prescription->status, [\App\Enums\PrescriptionStatus::REQUESTED, \App\Enums\PrescriptionStatus::REJECTED_BY_DOCTOR])))
                         @can('addProcessingNote', $prescription)
                             <div class="pt-6 @if(Auth::user() && Auth::user()->hasRole('acs') && Auth::user()->id === $prescription->user_id && in_array($prescription->status, [\App\Enums\PrescriptionStatus::REQUESTED, \App\Enums\PrescriptionStatus::REJECTED_BY_DOCTOR]) && Auth::user()->can('update', $prescription)) border-t dark:border-neutral-700 @endif">
@@ -303,8 +316,6 @@
                         @endcan
                     @endif
 
-
-                    {{-- Ações de Mudança de Status (outras que não Cancelar ou edição de conteúdo pela ACS) --}}
                     @if(count($statusOptionsForSelect) > 0)
                         <div class="pt-6 border-t dark:border-neutral-700">
                             <h3 class="text-md font-semibold text-gray-900 dark:text-neutral-100 mb-3">{{__('Próximas Ações / Alterar Status')}}</h3>
@@ -334,7 +345,6 @@
                         </div>
                     @endif
 
-                    {{-- BOTÃO DE CANCELAR DEDICADO E TEXTO INFORMATIVO --}}
                     @if(Auth::user() && (Auth::user()->hasRole('acs') || Auth::user()->hasRole('manager') || Auth::user()->hasRole('doctor')))
                         <div class="pt-6 @if( (count($statusOptionsForSelect) > 0) || (Auth::user()->can('addProcessingNote', $prescription)) || (Auth::user()->hasRole('acs') && Auth::user()->id === $prescription->user_id && in_array($prescription->status, [\App\Enums\PrescriptionStatus::REQUESTED, \App\Enums\PrescriptionStatus::REJECTED_BY_DOCTOR]) && Auth::user()->can('update', $prescription)) ) border-t dark:border-neutral-700 @endif">
                             <h3 class="text-md font-semibold text-gray-900 dark:text-neutral-100 mb-1">{{__('Outras Ações')}}</h3>
@@ -359,10 +369,11 @@
                         </div>
                     @endif
                 </div>
-            @endif {{-- Fim do @if para mostrar seção de edição --}}
+            @endif
 
-            {{-- Modal de Atualização de Status com Motivo --}}
+            {{-- Modal de Atualização de Status --}}
             @if($showStatusUpdateModal)
+                {{-- ... (código do modal de atualização de status - permanece igual) ... --}}
                 <div class="fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title-status-update" role="dialog" aria-modal="true">
                     <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                         <div wire:click="closeStatusUpdateModal" class="fixed inset-0 bg-gray-500/75 dark:bg-neutral-900/80 transition-opacity" aria-hidden="true"></div>
@@ -425,15 +436,14 @@
                     </div>
                 </div>
             @endif
-            {{-- Fim do Modal --}}
         </div>
     </div>
-    <style> /* Estilo do scrollbar mantido */
+    <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; /* Light theme scrollbar */ border-radius: 3px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; /* Dark theme scrollbar */ }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; /* Light theme hover */ }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; /* Dark theme hover */ }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
     </style>
 </div>

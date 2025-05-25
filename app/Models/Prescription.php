@@ -7,41 +7,44 @@ use Illuminate\Database\Eloquent\Model;
 use App\Enums\PrescriptionStatus;
 use Illuminate\Support\Facades\Storage;
 
-// Importar o Enum
-
 class Prescription extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'citizen_id',
-        'user_id',              // Usuário que solicitou/registrou
+        'user_id',
         'unit_id',
-        'doctor_id',            // Médico responsável (pode ser nulo)
+        'doctor_id',
         'status',
-        'prescription_details', // O texto livre da ACS sobre o pedido
-        'image_path',
-        'processing_notes',     // Consolidado: Notas do médico, motivo de rejeição/cancelamento
-        'reviewed_at',          // Data da análise médica
-        'completed_at',         // Data de finalização (entregue, rejeitada, cancelada)
-        // 'created_at' e 'updated_at' são gerenciados automaticamente e são fillable por padrão se não estiverem em $guarded
+        'prescription_details',
+        // 'image_path', // Removido ou substituído
+        'image_paths', // Nova coluna para array de imagens
+        'processing_notes',
+        'reviewed_at',
+        'completed_at',
     ];
 
     protected $casts = [
         'status' => PrescriptionStatus::class,
-        'prescription_details' => 'string',   // Garantir que seja tratado como string
+        'prescription_details' => 'string',
+        'image_paths' => 'array', // Cast para array
         'reviewed_at' => 'datetime',
         'completed_at' => 'datetime',
-        // created_at e updated_at são automaticamente tratados como datetime pelo Eloquent
     ];
 
-    // Acessor opcional para obter a URL da imagem
-    public function getImageUrlAttribute(): ?string
+    // Acessor para obter URLs das imagens
+    public function getImageUrlsAttribute(): array
     {
-        if ($this->image_path) {
-            return Storage::url($this->image_path); // Assume que você está usando o disco 'public'
+        $urls = [];
+        if (!empty($this->image_paths)) {
+            foreach ($this->image_paths as $path) {
+                if ($path && Storage::disk('public')->exists($path)) {
+                    $urls[] = Storage::disk('public')->url($path);
+                }
+            }
         }
-        return null;
+        return $urls;
     }
 
     // Relacionamentos (permanecem os mesmos)
@@ -50,7 +53,7 @@ class Prescription extends Model
         return $this->belongsTo(Citizen::class, 'citizen_id');
     }
 
-    public function requester() // Usuário que solicitou
+    public function requester()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
@@ -60,7 +63,7 @@ class Prescription extends Model
         return $this->belongsTo(Unit::class, 'unit_id');
     }
 
-    public function doctor() // Médico que analisou/emitiu
+    public function doctor()
     {
         return $this->belongsTo(User::class, 'doctor_id');
     }

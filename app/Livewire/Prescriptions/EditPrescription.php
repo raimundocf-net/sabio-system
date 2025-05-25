@@ -3,21 +3,21 @@
 namespace App\Livewire\Prescriptions;
 
 use App\Models\Prescription;
-// use App\Models\User; // Não mais necessário aqui se a lista de médicos foi removida da edição
 use App\Enums\PrescriptionStatus;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Validation\Rule;
-use Livewire\WithFileUploads; // <<< ADICIONAR TRAIT
-use Illuminate\Support\Facades\Storage; // <<< ADICIONAR STORAGE
-use Intervention\Image\Laravel\Facades\Image; // <<< ADICIONAR INTERVENTION IMAGE
+use Illuminate\Validation\Rule as ValidationRule; // Renomeado para evitar conflito
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Laravel\Facades\Image;
+use Illuminate\Support\Arr; // Para ajudar a remover elementos do array
 
 #[Layout('components.layouts.app')]
 class EditPrescription extends Component
 {
-    use WithFileUploads; // <<< USAR O TRAIT
+    use WithFileUploads;
 
     public Prescription $prescription;
     public string $pageTitle = "Detalhes da Solicitação de Receita";
@@ -26,9 +26,10 @@ class EditPrescription extends Component
     public string $editablePrescriptionDetails = '';
     public string $editOrCorrectionReason = '';
 
-    // Para upload/gerenciamento da imagem da receita
-    public $newPrescriptionImage; // Para o novo upload
-    //public ?string $currentPrescriptionImageUrl = null; // Para exibir a imagem atual
+    // Para upload/gerenciamento de múltiplas imagens
+    public array $existingImagePaths = []; // Armazenará os caminhos das imagens já salvas
+    public array $newPrescriptionImages = []; // Para novos uploads (array de objetos TemporaryUploadedFile)
+    public array $imagesToRemove = []; // Para marcar imagens existentes para remoção
 
     public bool $showStatusUpdateModal = false;
     public ?string $targetStatus = null;
@@ -45,18 +46,38 @@ class EditPrescription extends Component
             Auth::id() === $this->prescription->user_id &&
             in_array($this->prescription->status, [PrescriptionStatus::REQUESTED, PrescriptionStatus::REJECTED_BY_DOCTOR]);
 
+        // Calcula o número de imagens que restarão após a remoção e antes de adicionar novas
+        $numberOfExistingImagesAfterRemoval = count($this->existingImagePaths) - count($this->imagesToRemove);
+        $maxNewImagesAllowed = 3 - $numberOfExistingImagesAfterRemoval;
+
+
         $rules = [
             'current_processing_notes' => 'nullable|string|max:2000',
             'editablePrescriptionDetails' => [
-                Rule::requiredIf($isAcsCorrectingOrEditing),
-                'nullable', // Permite ser nulo se não for o cenário acima
+                ValidationRule::requiredIf($isAcsCorrectingOrEditing),
+                'nullable',
                 'string',
                 'min:10',
                 'max:2000',
             ],
             'editOrCorrectionReason' => 'nullable|string|max:500',
-            // Validação para a nova imagem (opcional, imagem, max 5MB)
-            'newPrescriptionImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            // Validação para as novas imagens
+            'newPrescriptionImages' => [
+                'nullable',
+                'array',
+                // Valida se o total de imagens (existentes não marcadas para remoção + novas) não excede 3
+                function ($attribute, $value, $fail) use ($numberOfExistingImagesAfterRemoval) {
+                    if ((count($value) + $numberOfExistingImagesAfterRemoval) > 3) {
+                        $fail(__('Você pode ter no máximo 3 imagens no total.'));
+                    }
+                },
+            ],
+            'newPrescriptionImages.*' => [
+                'image',
+                'mimes:jpeg,png,jpg,gif,webp',
+                'max:5120' // 5MB por arquivo
+            ],
+            'imagesToRemove' => 'nullable|array', // Para os caminhos das imagens a remover
         ];
 
         if ($this->showStatusUpdateModal &&
@@ -70,11 +91,12 @@ class EditPrescription extends Component
     }
 
     protected array $messages = [
-        // ... mensagens existentes ...
-        'editablePrescriptionDetails.required' => 'Os detalhes do pedido são obrigatórios.', // Ajustado de required_if
-        'newPrescriptionImage.image' => 'O arquivo enviado deve ser uma imagem válida.',
-        'newPrescriptionImage.mimes' => 'A imagem deve ser do tipo: jpeg, png, jpg, gif, webp.',
-        'newPrescriptionImage.max' => 'A nova imagem não pode ser maior que 5MB.',
+        'editablePrescriptionDetails.required' => 'Os detalhes do pedido são obrigatórios.',
+        'newPrescriptionImages.max' => 'Você pode anexar no máximo 3 imagens no total (considerando as já existentes).',
+        'newPrescriptionImages.*.image' => 'Cada novo arquivo deve ser uma imagem válida.',
+        'newPrescriptionImages.*.mimes' => 'Cada nova imagem deve ser do tipo: jpeg, png, jpg, gif, webp.',
+        'newPrescriptionImages.*.max' => 'Cada nova imagem não pode ser maior que 5MB.',
+        'statusUpdateReason.required' => 'O motivo é obrigatório para esta ação.',
     ];
 
     public function mount(Prescription $prescription)
@@ -89,89 +111,121 @@ class EditPrescription extends Component
 
         $this->pageTitle = __("Solicitação de Receita #") . $this->prescription->id;
         $this->editablePrescriptionDetails = $this->prescription->prescription_details ?? '';
-        //$this->currentPrescriptionImageUrl = $this->prescription->image_url; // Usa o acessor do modelo
+        $this->existingImagePaths = $this->prescription->image_paths ?? []; // Carrega os caminhos existentes
         $this->statusOptionsForSelect = $this->getAvailableStatusTransitions();
     }
 
-    // Método para atualizar/substituir a imagem anexada
-    public function updateAttachedImage()
+    // Método para marcar uma imagem existente para remoção
+    public function markImageForRemoval(string $imagePath): void
     {
-        if (!$this->prescription) return;
-        $this->authorize('update', $this->prescription); // Requer permissão de update na prescrição
-
-        $this->validate(['newPrescriptionImage' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120']);
-
-        if ($this->newPrescriptionImage) {
-            // 1. Deleta a imagem antiga, se existir
-            if ($this->prescription->image_path && Storage::disk('public')->exists($this->prescription->image_path)) {
-                Storage::disk('public')->delete($this->prescription->image_path);
-            }
-
-            // 2. Processa e armazena a nova imagem
-            try {
-                $image = Image::read($this->newPrescriptionImage->getRealPath());
-                $image->scaleDown(width: 1200); // Redimensiona mantendo proporção
-                $filename = 'rx_img_' . uniqid() . '_' . time() . '.webp';
-                $encodedImage = $image->toWebp(75);
-                $directory = 'prescription_images';
-                Storage::disk('public')->put($directory . '/' . $filename, (string) $encodedImage);
-                $this->prescription->image_path = $directory . '/' . $filename;
-
-            } catch (\Exception $e) {
-                $this->dispatch('notify', ['message' => 'Erro ao processar a nova imagem: ' . $e->getMessage(), 'type' => 'error']);
-                $this->newPrescriptionImage = null; // Limpa o upload falho
-                return;
-            }
-
-            $this->prescription->save();
-            $this->prescription->refresh();
-            $this->currentPrescriptionImageUrl = $this->prescription->image_url; // Atualiza a URL da imagem exibida
-            $this->newPrescriptionImage = null; // Limpa o campo de upload
-            $this->dispatch('notify', ['message' => 'Imagem da receita atualizada com sucesso!', 'type' => 'success']);
+        if (!in_array($imagePath, $this->imagesToRemove)) {
+            $this->imagesToRemove[] = $imagePath;
         }
     }
 
-    // Método para remover a imagem anexada
-    public function removeAttachedImage()
+    // Método para desmarcar uma imagem da remoção (caso o usuário mude de ideia antes de salvar)
+    public function unmarkImageForRemoval(string $imagePath): void
     {
-        if (!$this->prescription) return;
-        $this->authorize('update', $this->prescription); // Requer permissão de update
+        $this->imagesToRemove = array_filter($this->imagesToRemove, function ($path) use ($imagePath) {
+            return $path !== $imagePath;
+        });
+    }
 
-        if ($this->prescription->image_path && Storage::disk('public')->exists($this->prescription->image_path)) {
-            Storage::disk('public')->delete($this->prescription->image_path);
-            $this->prescription->image_path = null;
-            $this->prescription->save();
-            $this->prescription->refresh();
-            $this->currentPrescriptionImageUrl = null;
-            $this->dispatch('notify', ['message' => 'Imagem da receita removida com sucesso!', 'type' => 'success']);
-        } else {
-            $this->dispatch('notify', ['message' => 'Nenhuma imagem para remover ou arquivo não encontrado.', 'type' => 'info']);
+    // Método para remover uma imagem nova (ainda não salva) do array de upload
+    public function removeNewImage(int $index): void
+    {
+        if (isset($this->newPrescriptionImages[$index])) {
+            array_splice($this->newPrescriptionImages, $index, 1);
+            // É importante resetar a validação para este item específico se houver erros associados
+            $this->resetValidation('newPrescriptionImages.' . $index);
+            // E também para a validação do array 'newPrescriptionImages' se ela dependia da contagem
+            $this->resetValidation('newPrescriptionImages');
         }
     }
 
 
-    // ... (métodos getAvailableStatusTransitions, saveProcessingNotes, savePrescriptionContentChanges,
-    //      prepareStatusUpdate, prepareCancellation, confirmStatusUpdate, updateStatusInternal,
-    //      closeStatusUpdateModal, render) permanecem como na sua última versão ou como ajustamos.
-    // Certifique-se que o método savePrescriptionContentChanges para ACS
-    // NÃO tente lidar com o upload de imagem, pois agora temos métodos dedicados para isso.
-    // O ACS edita o texto, e a imagem é gerenciada separadamente.
+    // Atualizado para lidar com múltiplas imagens
+    public function saveImages(): void
+    {
+        if (!$this->prescription) return;
+        $this->authorize('update', $this->prescription);
 
-    // O método savePrescriptionContentChanges da ACS deve focar apenas em:
-    // - prescription_details
-    // - editOrCorrectionReason (que vai para processing_notes)
-    // - mudança de status para UNDER_DOCTOR_REVIEW se veio de REJECTED_BY_DOCTOR
-    // A imagem, se precisasse ser alterada, usaria updateAttachedImage() ou removeAttachedImage().
+        // Valida apenas os campos de imagem se houver novas imagens ou imagens marcadas para remoção
+        $this->validateOnly('newPrescriptionImages');
+        $this->validateOnly('newPrescriptionImages.*');
+        $this->validateOnly('imagesToRemove');
 
-    // COPIE AQUI OS MÉTODOS RESTANTES (getAvailableStatusTransitions, saveProcessingNotes, etc.)
-    // DA VERSÃO ANTERIOR QUE VOCÊ ME MOSTROU E ESTAVA FUNCIONANDO BEM,
-    // pois a lógica deles não muda fundamentalmente com a adição do gerenciamento de imagem.
-    // Apenas certifique-se de que eles não estão tentando manipular $this->newPrescriptionImage diretamente.
-    // A interação é: ACS edita texto, salva. Se precisar mudar imagem, usa os botões de imagem.
 
-    // Vou colar aqui os métodos que você já tinha e que permanecem relevantes,
-    // com a certeza de que eles não conflitam com a nova lógica de imagem.
-    private function getAvailableStatusTransitions(): array { /* ... como antes ... */
+        $currentImagePaths = $this->prescription->image_paths ?? [];
+        $pathsToKeep = [];
+
+        // Manter imagens existentes que não foram marcadas para remoção
+        foreach ($currentImagePaths as $path) {
+            if (!in_array($path, $this->imagesToRemove)) {
+                $pathsToKeep[] = $path;
+            }
+        }
+
+        // Deletar do storage as imagens marcadas para remoção
+        foreach ($this->imagesToRemove as $pathToRemove) {
+            if (Storage::disk('public')->exists($pathToRemove)) {
+                Storage::disk('public')->delete($pathToRemove);
+            }
+        }
+
+        // Processar e adicionar novas imagens
+        $newlyUploadedPaths = [];
+        if (!empty($this->newPrescriptionImages)) {
+            foreach ($this->newPrescriptionImages as $imageFile) {
+                try {
+                    $image = Image::read($imageFile->getRealPath());
+                    $image->scaleDown(width: 1200);
+                    $filename = 'rx_img_' . uniqid() . '_' . time() . '.webp';
+                    $directory = 'prescription_images';
+                    Storage::disk('public')->put($directory . '/' . $filename, (string) $image->toWebp(75));
+                    $newlyUploadedPaths[] = $directory . '/' . $filename;
+                } catch (\Exception $e) {
+                    $this->dispatch('notify', ['message' => 'Erro ao processar uma nova imagem: ' . $e->getMessage(), 'type' => 'error']);
+                    // Se uma imagem falhar, podemos optar por não salvar nenhuma das novas
+                    // e limpar $newlyUploadedPaths para não adicionar caminhos parciais.
+                    // Ou remover os arquivos já salvos desta leva de uploads.
+                    // Por simplicidade, aqui apenas logamos e continuamos, mas não adicionamos a imagem falha.
+                    \Illuminate\Support\Facades\Log::error('Erro ao processar imagem em EditPrescription: ' . $e->getMessage());
+                }
+            }
+        }
+
+        // Combinar caminhos mantidos e novos caminhos
+        $finalImagePaths = array_merge($pathsToKeep, $newlyUploadedPaths);
+
+        // Limitar ao máximo de 3 imagens no total
+        if (count($finalImagePaths) > 3) {
+            // Se, após adicionar novas, o total exceder 3, remove as mais antigas das 'novas'
+            // Ou exibe um erro. A validação no rules() já deve ter prevenido isso.
+            // Para segurança, podemos truncar aqui, embora o ideal seja a validação prévia.
+            $this->dispatch('notify', ['message' => 'Limite de 3 imagens excedido. Apenas as primeiras 3 foram mantidas.', 'type' => 'warning']);
+            $finalImagePaths = array_slice($finalImagePaths, 0, 3);
+        }
+
+
+        $this->prescription->image_paths = !empty($finalImagePaths) ? $finalImagePaths : null;
+        $this->prescription->save();
+        $this->prescription->refresh();
+
+        $this->existingImagePaths = $this->prescription->image_paths ?? [];
+        $this->newPrescriptionImages = []; // Limpa o array de upload
+        $this->imagesToRemove = []; // Limpa o array de remoção
+
+        $this->dispatch('notify', ['message' => 'Imagens da receita atualizadas com sucesso!', 'type' => 'success']);
+    }
+
+
+    // Os métodos abaixo (getAvailableStatusTransitions, saveProcessingNotes, savePrescriptionContentChanges, etc.)
+    // permanecem os mesmos da sua última versão, pois a lógica deles não é diretamente afetada
+    // pela forma como as imagens são gerenciadas, exceto que `savePrescriptionContentChanges`
+    // não deve mais se preocupar com o campo `image_path`.
+    // ... (cole os outros métodos aqui) ...
+    private function getAvailableStatusTransitions(): array {
         $options = [];
         $user = Auth::user();
         if (!$user) return [];
@@ -180,9 +234,11 @@ class EditPrescription extends Component
             if ($nextStatusEnum === $this->prescription->status || $nextStatusEnum === PrescriptionStatus::CANCELLED) {
                 continue;
             }
+            // ACS só pode reenviar se foi rejeitado, não pode escolher outros status diretamente.
             if ($user->hasRole('acs') &&
                 $this->prescription->status === PrescriptionStatus::REJECTED_BY_DOCTOR &&
                 $nextStatusEnum === PrescriptionStatus::UNDER_DOCTOR_REVIEW) {
+                // Esta transição é feita pelo savePrescriptionContentChanges, não pelo seletor de status.
                 continue;
             }
             if ($user->can('changeStatus', [$this->prescription, $nextStatusEnum])) {
@@ -193,7 +249,7 @@ class EditPrescription extends Component
         return $options;
     }
 
-    public function savePrescriptionContentChanges() { /* ... como antes, mas sem tocar em imagem ... */
+    public function savePrescriptionContentChanges() {
         if (!$this->prescription) return;
         $this->authorize('update', $this->prescription);
         $user = Auth::user();
@@ -215,7 +271,7 @@ class EditPrescription extends Component
             }
         } elseif ($this->prescription->status === PrescriptionStatus::REJECTED_BY_DOCTOR) {
             $this->prescription->status = PrescriptionStatus::UNDER_DOCTOR_REVIEW;
-            $this->prescription->completed_at = null;
+            $this->prescription->completed_at = null; // Reseta data de conclusão se estava rejeitada
             $noteForLog = "Solicitação corrigida e reenviada para análise por {$user->name}.";
             if (!empty(trim($validatedData['editOrCorrectionReason']))) {
                 $noteForLog .= " Nota da correção: " . trim($validatedData['editOrCorrectionReason']);
@@ -229,23 +285,41 @@ class EditPrescription extends Component
         $this->prescription->save();
         $this->prescription->refresh()->load(['citizen', 'requester', 'unit', 'doctor']);
         $this->editablePrescriptionDetails = $this->prescription->prescription_details;
-        $this->editOrCorrectionReason = '';
-        $this->statusOptionsForSelect = $this->getAvailableStatusTransitions();
+        $this->editOrCorrectionReason = ''; // Limpa o campo após salvar
+        $this->statusOptionsForSelect = $this->getAvailableStatusTransitions(); // Atualiza opções de status
         $message = $this->prescription->status->value === PrescriptionStatus::UNDER_DOCTOR_REVIEW->value ?
             'Solicitação corrigida e reenviada para análise!' :
             'Conteúdo da solicitação atualizado com sucesso!';
         $this->dispatch('notify', ['message' => $message, 'type' => 'success']);
     }
 
-    public function prepareStatusUpdate(string $newStatusValue) { /* ... como antes ... */
+    public function saveProcessingNotes(): void
+    {
         if (!$this->prescription) return;
-        $newStatusEnum = PrescriptionStatus::from($newStatusValue);
+        $this->authorize('addProcessingNote', $this->prescription); // Usando a nova action da policy
+
+        $this->validate(['current_processing_notes' => 'required|string|min:5|max:2000']);
+
+        $userPerformingAction = Auth::user()?->name ?? 'Sistema';
+        $newNoteEntry = "(" . now()->format('d/m/Y H:i') . ") Nota de {$userPerformingAction}: " . trim($this->current_processing_notes);
+        $existingNotes = $this->prescription->processing_notes ?? '';
+        $this->prescription->processing_notes = !empty($existingNotes) ? $existingNotes . "\n---\n" . $newNoteEntry : $newNoteEntry;
+        $this->prescription->save();
+        $this->prescription->refresh(); // Recarrega para exibir a nota
+        $this->current_processing_notes = ''; // Limpa o campo
+        $this->dispatch('notify', ['message' => 'Nota de processamento adicionada com sucesso!', 'type' => 'success']);
+    }
+
+    public function prepareStatusUpdate(string $newStatusValue) {
+        if (!$this->prescription) return;
+        $newStatusEnum = PrescriptionStatus::from($newStatusValue); // Converte string para Enum
         $this->authorize('changeStatus', [$this->prescription, $newStatusEnum]);
         $this->targetStatus = $newStatusValue;
-        $this->statusUpdateReason = '';
-        $this->resetErrorBag('statusUpdateReason');
+        $this->statusUpdateReason = ''; // Limpa o motivo anterior
+        $this->resetErrorBag('statusUpdateReason'); // Limpa erros de validação do motivo
         $this->modalTitle = __('Alterar Status para ') . $newStatusEnum->label();
         $this->modalConfirmationButtonText = __('Confirmar Mudança');
+        // Se o novo status requer um motivo (Rejeitada ou Cancelada)
         if (in_array($newStatusEnum, [PrescriptionStatus::REJECTED_BY_DOCTOR, PrescriptionStatus::CANCELLED])) {
             $this->modalTitle = ($newStatusEnum === PrescriptionStatus::REJECTED_BY_DOCTOR) ?
                 __('Rejeitar Solicitação de Receita') :
@@ -256,7 +330,8 @@ class EditPrescription extends Component
         }
         $this->showStatusUpdateModal = true;
     }
-    public function prepareCancellation() { /* ... como antes ... */
+
+    public function prepareCancellation() {
         if (!$this->prescription) return;
         $this->authorize('cancel', $this->prescription);
         $this->targetStatus = PrescriptionStatus::CANCELLED->value;
@@ -266,30 +341,38 @@ class EditPrescription extends Component
         $this->modalConfirmationButtonText = __('Confirmar Cancelamento');
         $this->showStatusUpdateModal = true;
     }
-    public function confirmStatusUpdate() { /* ... como antes ... */
+
+    public function confirmStatusUpdate() {
         if (!$this->prescription || !$this->targetStatus) return;
         $newStatusEnum = PrescriptionStatus::from($this->targetStatus);
+        // Autorização específica para cancelamento
         if ($newStatusEnum === PrescriptionStatus::CANCELLED) {
             $this->authorize('cancel', $this->prescription);
         } else {
             $this->authorize('changeStatus', [$this->prescription, $newStatusEnum]);
         }
+        // Valida o motivo apenas se for necessário para o status alvo
         if (in_array($this->targetStatus, [
             PrescriptionStatus::REJECTED_BY_DOCTOR->value,
             PrescriptionStatus::CANCELLED->value
         ])) {
-            $this->validateOnly('statusUpdateReason');
+            $this->validateOnly('statusUpdateReason'); // Valida apenas o motivo
         }
         $this->updateStatusInternal($newStatusEnum, trim($this->statusUpdateReason) ?: null);
         $this->closeStatusUpdateModal();
     }
-    private function updateStatusInternal(PrescriptionStatus $newStatus, ?string $reasonForStatusChange) { /* ... como antes ... */
+
+    private function updateStatusInternal(PrescriptionStatus $newStatus, ?string $reasonForStatusChange) {
+        // Segurança: Verifica se a prescrição já está num estado final
         if (in_array($this->prescription->status, [PrescriptionStatus::DELIVERED, PrescriptionStatus::CANCELLED]) &&
-            $this->prescription->status !== $newStatus) {
+            $this->prescription->status !== $newStatus) { // Permite "cancelar" uma entregue se a lógica de negócio mudar
             $this->dispatch('notify', ['message' => 'Esta solicitação já foi entregue ou cancelada e não pode ter seu status principal alterado.', 'type' => 'error']);
             return;
         }
+
         $currentUser = Auth::user();
+
+        // Atualiza reviewed_at e doctor_id se um médico estiver atuando pela primeira vez
         if (!$this->prescription->reviewed_at && $currentUser && $currentUser->hasRole('doctor') &&
             in_array($newStatus, [
                 PrescriptionStatus::UNDER_DOCTOR_REVIEW,
@@ -297,40 +380,52 @@ class EditPrescription extends Component
                 PrescriptionStatus::REJECTED_BY_DOCTOR,
             ])) {
             $this->prescription->reviewed_at = now();
-            if(!$this->prescription->doctor_id) {
+            if(!$this->prescription->doctor_id) { // Só define o médico se não houver um já atribuído
                 $this->prescription->doctor_id = $currentUser->id;
             }
         }
+
+        // Adiciona o motivo/nota ao histórico de notas de processamento
         if ($reasonForStatusChange) {
             $userPerformingAction = $currentUser?->name ?? 'Sistema';
-            $prefix = "";
+            $prefix = ""; // Para contextualizar a nota
             if ($newStatus === PrescriptionStatus::REJECTED_BY_DOCTOR) {
                 $prefix = "Rejeitada por {$userPerformingAction} (" . now()->format('d/m/Y H:i') . "): ";
             } elseif ($newStatus === PrescriptionStatus::CANCELLED) {
                 $prefix = "Cancelada por {$userPerformingAction} (" . now()->format('d/m/Y H:i') . "): ";
             }
+            // Outros status podem adicionar notas mais genéricas se $reasonForStatusChange for usado para eles
+            // Se não, o prefixo será vazio e apenas a $reasonForStatusChange será adicionada.
             $newNoteEntry = $prefix . $reasonForStatusChange;
-            $this->prescription->processing_notes = ($this->prescription->processing_notes ? $this->prescription->processing_notes . "\n---\n" : "") . $newNoteEntry;
+
+            $existingNotes = $this->prescription->processing_notes ?? '';
+            $this->prescription->processing_notes = !empty($existingNotes) ? $existingNotes . "\n---\n" . $newNoteEntry : $newNoteEntry;
         }
-        $this->prescription->status = $newStatus;
+
+        $this->prescription->status = $newStatus; // Eloquent lida com ->value
+
+        // Define ou limpa completed_at
         if (in_array($newStatus, [PrescriptionStatus::DELIVERED, PrescriptionStatus::CANCELLED])) {
-            if (!$this->prescription->completed_at) {
+            if (!$this->prescription->completed_at) { // Só define se não estiver já preenchido
                 $this->prescription->completed_at = now();
             }
         } else {
-            $this->prescription->completed_at = null;
+            $this->prescription->completed_at = null; // Limpa se não for um status final
         }
+
         $this->prescription->save();
-        $this->prescription->refresh()->load(['citizen', 'requester', 'unit', 'doctor']);
-        $this->statusOptionsForSelect = $this->getAvailableStatusTransitions();
+        $this->prescription->refresh()->load(['citizen', 'requester', 'unit', 'doctor']); // Recarrega relações
+        $this->statusOptionsForSelect = $this->getAvailableStatusTransitions(); // Atualiza opções do select
         $this->dispatch('notify', ['message' => 'Status da solicitação atualizado para: ' . $newStatus->label(), 'type' => 'success']);
     }
-    public function closeStatusUpdateModal() { /* ... como antes ... */
+
+    public function closeStatusUpdateModal() {
         $this->showStatusUpdateModal = false;
         $this->targetStatus = null;
         $this->statusUpdateReason = '';
-        $this->resetErrorBag('statusUpdateReason');
+        $this->resetErrorBag('statusUpdateReason'); // Limpa apenas o erro do motivo
     }
+
 
     public function render()
     {

@@ -88,26 +88,52 @@
                     </div>
 
                     {{-- Rodapé com Status e Ações --}}
-                    <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-neutral-700/70 border-t dark:border-neutral-600"> {{-- Padding do rodapé reduzido --}}
-                        <span class="px-2 py-0.5 text-xs font-semibold rounded-md {{ $prescription->status->badgeClasses() }}"> {{-- Badge com cantos arredondados (rounded-md) em vez de full --}}
-                            {{ $prescription->status->label() }}
-                        </span>
+                    {{-- Rodapé com Status e Ações --}}
+                    {{-- Rodapé com Status e Ações --}}
+                    <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-neutral-700/70 border-t dark:border-neutral-600">
+                        <div class="flex items-center gap-x-2">
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-md {{ $prescription->status->badgeClasses() }}">
+                                {{ $prescription->status->label() }}
+                            </span>
 
-                        <div class="flex space-x-1">
-                            @can('view', $prescription) {{-- ou 'update', dependendo da sua policy --}}
-                            <a href="{{ route('prescriptions.edit', $prescription->id) }}"
-                               wire:navigate
-                               class="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-neutral-600 transition"
-                               title="{{__('Detalhes / Editar')}}">
-                                <span class="icon-[mdi--eye-outline] w-5 h-5 text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"></span> {{-- Ícone colorido --}}
-                            </a>
+                            {{-- Botão para "Pronta para Retirada" --}}
+                            @if ($prescription->status === \App\Enums\PrescriptionStatus::APPROVED_FOR_ISSUANCE)
+                                @can('changeStatus', [$prescription, \App\Enums\PrescriptionStatus::READY_FOR_PICKUP])
+                                    <button wire:click="openReadyForPickupModal({{ $prescription->id }})"
+                                            class="p-1 rounded-full hover:bg-purple-100 dark:hover:bg-purple-600 transition"
+                                            title="{{__('Marcar como Pronta para Retirada')}}">
+                                        <span class="icon-[mdi--package-variant-closed-check] w-4 h-4 text-purple-600 dark:text-purple-400"></span>
+                                    </button>
+                                @endcan
+                            @endif
+
+                            {{-- Botão para "Entregue" --}}
+                            @if ($prescription->status === \App\Enums\PrescriptionStatus::READY_FOR_PICKUP)
+                                @can('changeStatus', [$prescription, \App\Enums\PrescriptionStatus::DELIVERED])
+                                    <button wire:click="openDeliveryModal({{ $prescription->id }})"
+                                            class="p-1 rounded-full hover:bg-teal-100 dark:hover:bg-teal-600 transition"
+                                            title="{{__('Registrar Entrega')}}">
+                                        <span class="icon-[mdi--check-circle-outline] w-4 h-4 text-teal-600 dark:text-teal-400"></span>
+                                    </button>
+                                @endcan
+                            @endif
+                        </div>
+
+                        <div class="flex space-x-1"> {{-- Ações originais --}}
+                            @can('view', $prescription)
+                                <a href="{{ route('prescriptions.edit', $prescription->id) }}"
+                                   wire:navigate
+                                   class="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-neutral-600 transition"
+                                   title="{{__('Detalhes / Editar')}}">
+                                    <span class="icon-[mdi--eye-outline] w-5 h-5 text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"></span>
+                                </a>
                             @endcan
 
                             @can('cancel', $prescription)
                                 <button wire:click="openCancelModal({{ $prescription->id }})"
                                         class="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-neutral-600 transition"
                                         title="{{__('Cancelar Receita')}}">
-                                    <span class="icon-[mdi--cancel-bold] w-5 h-5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"></span> {{-- Ícone colorido --}}
+                                    <span class="icon-[mdi--cancel-bold] w-5 h-5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"></span>
                                 </button>
                             @endcan
                         </div>
@@ -178,6 +204,90 @@
             </div>
         @endif
     </div>
+    {{-- Modal de Confirmação "Pronta para Retirada" --}}
+    @if($showReadyForPickupModal && $confirmingReadyForPickupPrescriptionId)
+        <div class="fixed inset-0 z-[100] flex items-end justify-center px-4 py-6 pointer-events-none sm:items-center sm:p-6" aria-labelledby="modal-title-ready" role="dialog" aria-modal="true">
+            <div wire:click="closeReadyForPickupModal" class="fixed inset-0 bg-gray-500/75 dark:bg-neutral-900/80 transition-opacity pointer-events-auto" aria-hidden="true"></div>
+            <div class="inline-block align-bottom bg-white dark:bg-neutral-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full pointer-events-auto">
+                <div class="bg-white dark:bg-neutral-800 px-4 pt-5 pb-4 sm:p-6">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                            <span class="icon-[mdi--help-circle-outline] w-6 h-6 text-purple-600 dark:text-purple-400"></span>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-neutral-100" id="modal-title-ready">{{ __('Confirmar Status') }}</h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-600 dark:text-neutral-300">
+                                    {{ __('Deseja realmente marcar esta receita como "Pronta para Retirada"?') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-neutral-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+                    <button wire:click="confirmReadyForPickup" type="button" wire:loading.attr="disabled"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm dark:bg-purple-500 dark:hover:bg-purple-400 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="confirmReadyForPickup">{{ __('Confirmar') }}</span>
+                        <svg wire:loading wire:target="confirmReadyForPickup" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                    <button wire:click="closeReadyForPickupModal" type="button" wire:loading.attr="disabled"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-neutral-600 shadow-sm px-4 py-2 bg-white dark:bg-neutral-700 text-base font-medium text-gray-700 dark:text-neutral-200 hover:bg-gray-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50">
+                        {{ __('Voltar') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal de Registro de Entrega --}}
+    @if($showDeliveryModal && $deliveringPrescriptionId)
+        <div class="fixed inset-0 z-[100] flex items-end justify-center px-4 py-6 pointer-events-none sm:items-center sm:p-6" aria-labelledby="modal-title-delivery" role="dialog" aria-modal="true">
+            <div wire:click="closeDeliveryModal" class="fixed inset-0 bg-gray-500/75 dark:bg-neutral-900/80 transition-opacity pointer-events-auto" aria-hidden="true"></div>
+            <div class="inline-block align-bottom bg-white dark:bg-neutral-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full pointer-events-auto">
+                <div class="bg-white dark:bg-neutral-800 px-4 pt-5 pb-4 sm:p-6">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-teal-100 dark:bg-teal-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                            <span class="icon-[mdi--account-check-outline] w-6 h-6 text-teal-600 dark:text-teal-400"></span>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-neutral-100" id="modal-title-delivery">{{ __('Registrar Entrega da Receita') }}</h3>
+                            <div class="mt-4 space-y-3">
+                                <div>
+                                    <label for="retrieved_by_name" class="block text-sm font-medium text-gray-700 dark:text-neutral-300">{{__('Nome de Quem Retirou')}} <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model.defer="retrieved_by_name" id="retrieved_by_name"
+                                           class="mt-1 border block w-full rounded-md border-gray-300 dark:border-neutral-600 py-2 px-3 bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm focus:border-indigo-500 dark:focus:border-sky-500 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-sky-500 sm:text-sm @error('retrieved_by_name') border-red-500 dark:border-red-400 @enderror">
+                                    @error('retrieved_by_name') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="retrieved_by_document" class="block text-sm font-medium text-gray-700 dark:text-neutral-300">{{__('Documento de Quem Retirou (Opcional)')}}</label>
+                                    <input type="text" wire:model.defer="retrieved_by_document" id="retrieved_by_document" placeholder="Ex: CPF, RG"
+                                           class="border mt-1 block w-full rounded-md border-gray-300 dark:border-neutral-600 py-2 px-3 bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm focus:border-indigo-500 dark:focus:border-sky-500 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-sky-500 sm:text-sm @error('retrieved_by_document') border-red-500 dark:border-red-400 @enderror">
+                                    @error('retrieved_by_document') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-neutral-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+                    <button wire:click="confirmDelivery" type="button" wire:loading.attr="disabled"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-teal-600 text-base font-medium text-white hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 sm:ml-3 sm:w-auto sm:text-sm dark:bg-teal-500 dark:hover:bg-teal-400 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="confirmDelivery">{{ __('Confirmar Entrega') }}</span>
+                        <svg wire:loading wire:target="confirmDelivery" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                    <button wire:click="closeDeliveryModal" type="button" wire:loading.attr="disabled"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-neutral-600 shadow-sm px-4 py-2 bg-white dark:bg-neutral-700 text-base font-medium text-gray-700 dark:text-neutral-200 hover:bg-gray-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50">
+                        {{ __('Cancelar') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
     <style> /* Estilos do scrollbar mantidos, ok */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

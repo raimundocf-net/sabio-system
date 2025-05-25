@@ -10,15 +10,11 @@ use App\Enums\PrescriptionStatus;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rule as ValidationRule; // Alias para não conflitar com Rule do Livewire
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Storage; // Importar Storage
-// Importar a facade da Intervention Image (verifique o namespace correto para a versão instalada)
-// Para Intervention Image 3.x com o pacote laravel:
+use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
-// Ou se estiver usando o ImageManager diretamente:
-// use Intervention\Image\ImageManager;
-// use Intervention\Image\Drivers\Gd\Driver; // Exemplo para driver GD
+use Illuminate\Validation\Rules\File; // Para validação mais detalhada de arquivos
 
 #[Layout('components.layouts.app')]
 class PrescriptionFormStep extends Component
@@ -31,7 +27,7 @@ class PrescriptionFormStep extends Component
     public ?int $unit_id = null;
     public ?int $doctor_id = null;
     public string $prescriptionRequestDetails = '';
-    public $prescriptionImage;
+    public array $prescriptionImages = []; // Alterado para array para múltiplos uploads
 
     public ?string $currentUserUnitName = null;
     public \Illuminate\Database\Eloquent\Collection $doctorsList;
@@ -40,25 +36,27 @@ class PrescriptionFormStep extends Component
     {
         return [
             'unit_id' => 'required|integer|exists:units,id',
-            'doctor_id' => [ /* ... suas regras ... */ ],
+            'doctor_id' => 'nullable|integer|exists:users,id', // Ajustado para nullable
             'prescriptionRequestDetails' => 'required|string|min:5|max:2000',
-            // A validação de 'max' aqui é para o arquivo original enviado pelo usuário.
-            // Se for muito grande (ex: 10MB), pode falhar antes mesmo do processamento.
-            // Ajuste conforme os limites do seu servidor PHP (upload_max_filesize, post_max_size).
-            'prescriptionImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // Ex: max 5MB para o upload inicial
+            'prescriptionImages' => 'nullable|array|max:3', // No máximo 3 arquivos
+            'prescriptionImages.*' => [ // Validação para cada arquivo no array
+                'image',
+                'mimes:jpeg,png,jpg,gif,webp',
+                'max:5120' // 5MB por arquivo
+            ],
         ];
     }
 
     protected array $messages = [
-        // ... suas mensagens ...
-        'prescriptionImage.image' => 'O arquivo enviado deve ser uma imagem válida.',
-        'prescriptionImage.mimes' => 'A imagem deve ser do tipo: jpeg, png, jpg, gif, webp.',
-        'prescriptionImage.max' => 'A imagem original não pode ser maior que 5MB.',
+        'prescriptionRequestDetails.required' => 'Os detalhes da receita são obrigatórios.',
+        'prescriptionImages.max' => 'Você pode anexar no máximo 3 imagens.',
+        'prescriptionImages.*.image' => 'Cada arquivo deve ser uma imagem válida.',
+        'prescriptionImages.*.mimes' => 'Cada imagem deve ser do tipo: jpeg, png, jpg, gif, webp.',
+        'prescriptionImages.*.max' => 'Cada imagem não pode ser maior que 5MB.',
     ];
 
     public function mount(int $citizenId)
     {
-        // ... (seu código mount como antes) ...
         $this->citizen = Citizen::findOrFail($citizenId);
         $citizenName = $this->citizen->name ?? $this->citizen->nome_do_cidadao ?? 'Cidadão';
         $this->pageTitle = __("Solicitar Receita para: ") . $citizenName;
@@ -73,7 +71,7 @@ class PrescriptionFormStep extends Component
         $unitModel = Unit::find($this->unit_id);
         $this->currentUserUnitName = $unitModel?->name;
         $this->doctorsList = User::where('role', 'doctor')
-            ->where('unit_id', $this->unit_id)
+            //->where('unit_id', $this->unit_id) // Descomente se médicos são por unidade
             ->orderBy('name')
             ->select(['id', 'name'])
             ->get();
@@ -89,43 +87,22 @@ class PrescriptionFormStep extends Component
         $this->authorize('create', Prescription::class);
         $validatedData = $this->validate();
 
-        $imagePath = null;
-        if ($this->prescriptionImage) {
-            try {
-                // Lê a imagem do arquivo temporário carregado pelo Livewire
-                $image = Image::read($this->prescriptionImage->getRealPath());
-
-                // 1. Redimensionar (opcional, mas recomendado)
-                // Exemplo: Redimensionar para uma largura máxima de 1200px, mantendo a proporção.
-                // O método 'cover' preenche as dimensões e corta o excesso.
-                // Para apenas redimensionar proporcionalmente: ->scaleDown(width: 1200)
-                $image->scaleDown(width: 1200); // Mantém proporção, só reduz se for maior
-
-                // 2. Otimizar e Codificar
-                // Gera um nome de arquivo único com a extensão original (ou a desejada)
-                // Para WebP (ótima compressão e qualidade):
-                $filename = 'rx_img_' . uniqid() . '_' . time() . '.webp';
-                $encodedImage = $image->toWebp(75); // Salva como WebP com 75% de qualidade
-
-                // Ou para JPEG:
-                // $filename = 'rx_img_' . uniqid() . '_' . time() . '.jpg';
-                // $encodedImage = $image->toJpeg(75); // Qualidade 75%
-
-                // Ou para PNG (compressão sem perdas, pode resultar em arquivos maiores que WebP/JPEG para fotos):
-                // $filename = 'rx_img_' . uniqid() . '_' . time() . '.png';
-                // $encodedImage = $image->toPng()->reduceColors(); // Exemplo de otimização PNG
-
-                // 3. Salvar a Imagem Processada
-                $directory = 'prescription_images'; // Diretório dentro de 'storage/app/public/'
-                Storage::disk('public')->put($directory . '/' . $filename, (string) $encodedImage);
-                $imagePath = $directory . '/' . $filename;
-
-            } catch (\Exception $e) {
-                // Lidar com erro no processamento da imagem
-                $this->dispatch('notify', ['message' => 'Erro ao processar a imagem anexada: ' . $e->getMessage(), 'type' => 'error']);
-                // Você pode optar por continuar sem a imagem ou impedir o envio
-                // return; // Impede o envio se a imagem for crucial e falhar
-                $imagePath = null; // Garante que imagePath seja nulo se o processamento falhar
+        $uploadedImagePaths = [];
+        if (!empty($this->prescriptionImages)) {
+            foreach ($this->prescriptionImages as $imageFile) {
+                try {
+                    $image = Image::read($imageFile->getRealPath());
+                    $image->scaleDown(width: 1200);
+                    $filename = 'rx_img_' . uniqid() . '_' . time() . '.webp';
+                    $directory = 'prescription_images';
+                    Storage::disk('public')->put($directory . '/' . $filename, (string) $image->toWebp(75));
+                    $uploadedImagePaths[] = $directory . '/' . $filename;
+                } catch (\Exception $e) {
+                    $this->dispatch('notify', ['message' => 'Erro ao processar uma das imagens: ' . $e->getMessage(), 'type' => 'error']);
+                    // Considerar se deve parar o processo ou continuar sem a imagem problemática
+                    // Se uma imagem falhar, pode ser melhor parar e informar o usuário.
+                    return;
+                }
             }
         }
 
@@ -133,17 +110,36 @@ class PrescriptionFormStep extends Component
             'citizen_id' => $this->citizen->id,
             'user_id' => Auth::id(),
             'unit_id' => $this->unit_id,
-            'doctor_id' => $validatedData['doctor_id'],
+            'doctor_id' => $validatedData['doctor_id'] ?? null, // Usa null se não fornecido
             'status' => PrescriptionStatus::REQUESTED->value,
             'prescription_details' => $validatedData['prescriptionRequestDetails'],
-            'image_path' => $imagePath, // Salva o caminho da imagem processada
+            'image_paths' => !empty($uploadedImagePaths) ? $uploadedImagePaths : null, // Salva array de caminhos
         ]);
 
         $this->dispatch('notify', ['message' => 'Solicitação de receita enviada com sucesso!', 'type' => 'success']);
-        $this->prescriptionImage = null; // Limpa o campo de upload
-        $this->reset(); // Reseta todos os campos do formulário para o estado inicial
+        $this->resetFormFields();
         return $this->redirectRoute('prescriptions.index', navigate: true);
     }
+
+    private function resetFormFields()
+    {
+        $this->prescriptionRequestDetails = '';
+        $this->prescriptionImages = []; // Reseta o array de imagens
+        $this->doctor_id = null; // Reseta o médico selecionado
+        // Não resetar unit_id e currentUserUnitName pois são do usuário logado
+    }
+
+
+    public function removeImage(int $index): void
+    {
+        if (isset($this->prescriptionImages[$index])) {
+            // Se for um arquivo temporário do Livewire, ele será "esquecido"
+            array_splice($this->prescriptionImages, $index, 1);
+            // Para limpar o erro de validação específico deste item se houver:
+            $this->resetValidation('prescriptionImages.' . $index);
+        }
+    }
+
 
     public function render()
     {
