@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\TravelRequest;
 use App\Models\Vehicle;
+use App\Policies\TravelRequestPolicy;
 use App\Policies\VehiclePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -20,6 +22,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Prescription::class => PrescriptionPolicy::class,
         Vehicle::class => VehiclePolicy::class,
+        TravelRequest::class => TravelRequestPolicy::class,
     ];
 
     /**

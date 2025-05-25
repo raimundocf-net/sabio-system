@@ -6,12 +6,18 @@ use App\Livewire\Prescriptions\EditPrescription;
 use App\Livewire\Prescriptions\ListPrescriptions;
 use App\Livewire\Prescriptions\Request\PrescriptionFormStep;
 use App\Livewire\Prescriptions\Request\SearchCitizenStep;
+use App\Livewire\TravelRequests\SearchCitizenForTravelStep;
+use App\Livewire\TravelRequests\TravelRequestFormStep;
+use App\Livewire\TravelRequests\EditTravelRequest;
+use App\Livewire\TravelRequests\IndexTravelRequest;
 use App\Livewire\Units\IndexUnit;
 use App\Livewire\Units\ManageUnit;
 use App\Livewire\Users\IndexUser;
 use App\Livewire\Users\ManageUser;
+use App\Livewire\Vehicles\CreateVehicle;
 use App\Livewire\Vehicles\IndexVehicle;
 use App\Livewire\Vehicles\ManageVehicle;
+use App\Livewire\Vehicles\UpdateVehicle;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt; // Para as rotas de Configurações
 
@@ -67,18 +73,42 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{prescription}/image-pdf', [\App\Http\Controllers\PrescriptionViewController::class, 'showImageAsPdf'])->name('image.pdf'); // Middleware 'auth' já está no grupo pai
     });
 
-    // >>> INÍCIO: Novas Rotas para Veículos <<<
+    // >>> ROTAS PARA VEÍCULOS ATUALIZADAS <<<
     Route::prefix('vehicles')->name('vehicles.')->group(function () {
-        // A permissão 'manage-vehicles' será definida no AuthServiceProvider.
-        // Ou podemos usar a policy VehiclePolicy se preferirmos mais granularidade.
-        Route::get('/', IndexVehicle::class)->name('index')->can('viewAny', \App\Models\Vehicle::class);
-        Route::get('/create', ManageVehicle::class)->name('create')->can('create', \App\Models\Vehicle::class);
-        Route::get('/{vehicle}/edit', ManageVehicle::class)->name('edit')->can('update', 'vehicle');
+        Route::get('/', IndexVehicle::class)
+            ->name('index')
+            ->can('viewAny', \App\Models\Vehicle::class);
+
+        Route::get('/create', CreateVehicle::class) // Aponta para CreateVehicle
+        ->name('create')
+            ->can('create', \App\Models\Vehicle::class);
+
+        Route::get('/{vehicle}/edit', UpdateVehicle::class) // Aponta para UpdateVehicle
+        ->name('edit')
+            ->can('update', 'vehicle'); // 'vehicle' é o parâmetro da rota
     });
-    // >>> FIM: Novas Rotas para Veículos <<<
+    // >>> FIM DAS ROTAS ATUALIZADAS <<<
 
 
+    Route::prefix('travel-requests')->name('travel-requests.')->group(function () {
+        Route::get('/', IndexTravelRequest::class)
+            ->name('index')
+            ->can('viewAny', \App\Models\TravelRequest::class);
 
+        // Rota para a busca de cidadão
+        Route::get('/create/search-citizen', SearchCitizenForTravelStep::class)
+            ->name('create.search-citizen') // Rota que o botão deve usar
+            ->can('create', \App\Models\TravelRequest::class);
+
+        // Rota para o formulário, após selecionar o cidadão
+        Route::get('/create/form/{citizen}', TravelRequestFormStep::class)
+            ->name('create.form')
+            ->can('create', \App\Models\TravelRequest::class);
+
+        Route::get('/{travelRequest}/edit', EditTravelRequest::class)
+            ->name('edit')
+            ->can('update', 'travelRequest');
+    });
 
 
 

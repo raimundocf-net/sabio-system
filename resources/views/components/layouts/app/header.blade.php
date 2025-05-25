@@ -35,15 +35,27 @@
                     {{ __('Receitas') }}
                 </flux:navlist.item>
 
-                <flux:navbar.item :href="route('vehicles.index')" :current="request()->routeIs('vehicles.*')" wire:navigate>
-                    <x-slot:icon>
-                        {{-- Ícone para Veículos: ph:car-fill ou mdi:car-cog ou lucide:car --}}
-                        <span class="icon-[ph--car-fill] w-5 h-5"></span>
-                    </x-slot:icon>
-                    {{ __('Veículos') }}
-                </flux:navbar.item>
 
-                {{-- FIM DOS LINKS ADICIONADOS --}}
+
+                {{-- Veículos --}}
+                @can('viewAny', \App\Models\Vehicle::class)
+                    <flux:navbar.item :href="route('vehicles.index')" :current="request()->routeIs('vehicles.*')" wire:navigate>
+                        <x-slot:icon>
+                            <span class="icon-[ph--car-fill] w-5 h-5"></span>
+                        </x-slot:icon>
+                        {{ __('Veículos') }}
+                    </flux:navbar.item>
+                @endcan
+
+                @can('viewAny', \App\Models\TravelRequest::class)
+                    <flux:navbar.item :href="route('travel-requests.index')" :current="request()->routeIs('travel-requests.*')" wire:navigate>
+                        <x-slot:icon>
+                            {{-- Ícone para Solicitações de Viagem: mdi:clipboard-text-clock-outline, mdi:car-clock, ph:path-bold --}}
+                            <span class="icon-[mdi--clipboard-text-clock-outline] w-5 h-5"></span>
+                        </x-slot:icon>
+                        {{ __('Solicitações de Viagem') }}
+                    </flux:navbar.item>
+                @endcan
 
             </flux:navbar>
 
