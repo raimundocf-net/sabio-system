@@ -1,5 +1,8 @@
 <?php
 
+use App\Livewire\BoardingLocations\CreateBoardingLocation;
+use App\Livewire\BoardingLocations\IndexBoardingLocation;
+use App\Livewire\BoardingLocations\UpdateBoardingLocation;
 use App\Livewire\Citizens\ImportCitizen;
 use App\Livewire\DashboardSummary; // Corretamente usado para /dashboard
 use App\Livewire\Prescriptions\EditPrescription;
@@ -118,9 +121,9 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('boarding-locations')->name('boarding-locations.')->group(function () {
-        Route::get('/', \App\Livewire\BoardingLocations\IndexBoardingLocation::class)->name('index');
-        Route::get('/create', \App\Livewire\BoardingLocations\ManageBoardingLocation::class)->name('create');
-        Route::get('/{boardingLocation}/edit', \App\Livewire\BoardingLocations\ManageBoardingLocation::class)->name('edit');
+        Route::get('/', IndexBoardingLocation::class)->name('index');
+        Route::get('/create', CreateBoardingLocation::class)->name('create'); // ALTERADO
+        Route::get('/{boardingLocation}/edit', UpdateBoardingLocation::class)->name('edit'); // ALTERADO
     });
 
 
