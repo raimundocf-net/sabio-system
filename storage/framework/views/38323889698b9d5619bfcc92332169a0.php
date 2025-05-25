@@ -7,14 +7,14 @@
     <div class="max-w-2xl mx-auto mt-8">
         <div class="bg-white dark:bg-neutral-800 shadow-xl sm:rounded-lg">
             <div class="p-6">
-                <h2 class="text-xl font-semibold text-gray-900 dark:text-neutral-100 mb-1"><?php echo e(__('Para Solicitar uma Viagem, Busque por um Cidadão')); ?></h2>
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-neutral-100 mb-1"><?php echo e(__('Para Solicitar uma Receita, Busque por um Cidadão')); ?></h2>
                 <p class="text-sm text-gray-600 dark:text-neutral-300 mb-6"><?php echo e(__('Preencha um ou mais campos abaixo para encontrar o cidadão.')); ?></p>
 
                 <form wire:submit.prevent="searchCitizen" class="space-y-4">
                     <div>
-                        <label for="search_travel" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200"><?php echo e(__('Nome, CPF ou CNS do Cidadão')); ?></label>
+                        <label for="search" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200"><?php echo e(__('Nome, CPF ou CNS do Cidadão')); ?> <span class="text-red-500">*</span></label>
                         <div class="mt-2">
-                            <input type="text" wire:model.defer="search" id="search_travel" placeholder="<?php echo e(__('Digite Nome, CPF ou CNS')); ?>"
+                            <input type="text" wire:model.defer="search" id="search" placeholder="<?php echo e(__('Digite Nome, CPF ou CNS')); ?>"
                                    class="block w-full rounded-md border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 py-2 px-3 text-gray-900 dark:text-neutral-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-neutral-400 focus:border-indigo-500 dark:focus:border-sky-500 focus:ring-2 focus:ring-indigo-500/50 dark:focus:ring-sky-500/50 sm:text-sm <?php $__errorArgs = ['search'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
@@ -35,9 +35,9 @@ unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                     </div>
 
                     <div>
-                        <label for="searchMother_travel" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200"><?php echo e(__('Nome da Mãe (Opcional)')); ?></label>
+                        <label for="searchMother" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200"><?php echo e(__('Nome da Mãe (Opcional)')); ?></label>
                         <div class="mt-2">
-                            <input type="text" wire:model.defer="searchMother" id="searchMother_travel" placeholder="<?php echo e(__('Digite o nome da mãe para refinar a busca')); ?>"
+                            <input type="text" wire:model.defer="searchMother" id="searchMother" placeholder="<?php echo e(__('Digite o nome da mãe para refinar a busca')); ?>"
                                    class="block w-full rounded-md border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 py-2 px-3 text-gray-900 dark:text-neutral-100 shadow-sm placeholder:text-gray-400 dark:placeholder:text-neutral-400 focus:border-indigo-500 dark:focus:border-sky-500 focus:ring-2 focus:ring-indigo-500/50 dark:focus:ring-sky-500/50 sm:text-sm <?php $__errorArgs = ['searchMother'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
@@ -58,8 +58,8 @@ unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-3 pt-2">
-                        <a href="<?php echo e(route('travel-requests.index')); ?>" wire:navigate 
-                        class="w-full sm:w-auto inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-neutral-500 bg-white dark:bg-neutral-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-neutral-200 shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-800 disabled:opacity-25">
+                        <a href="<?php echo e(route('prescriptions.index')); ?>" wire:navigate
+                           class="w-full sm:w-auto inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-neutral-500 bg-white dark:bg-neutral-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-neutral-200 shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-800 disabled:opacity-25">
                             <span class="icon-[mdi--cancel] w-4 h-4 mr-2"></span>
                             <?php echo e(__('Cancelar')); ?>
 
@@ -73,7 +73,7 @@ unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                         <button type="submit" wire:loading.attr="disabled"
                                 class="w-full sm:w-auto inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 dark:bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 dark:hover:bg-sky-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-sky-600 focus:ring-offset-2 dark:focus:ring-offset-neutral-800 active:bg-blue-700 dark:active:bg-sky-300 disabled:opacity-50">
                             <span wire:loading.remove class="icon-[mdi--account-search-outline] w-5 h-5 mr-2"></span>
-                            <svg wire:loading wire:target="searchCitizen" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg wire:loading class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
@@ -83,16 +83,7 @@ unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                     </div>
                 </form>
 
-                
-                <!--[if BLOCK]><![endif]--><?php if($infoMessage): ?>
-                    <div class="mt-4 p-3 text-sm bg-yellow-100 dark:bg-yellow-700/30 text-yellow-700 dark:text-yellow-300 rounded-md">
-                        <?php echo e($infoMessage); ?>
-
-                    </div>
-                <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
-                
-                
-
+                <?php echo $__env->make('livewire.partials.session-messages', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?> 
 
                 <!--[if BLOCK]><![endif]--><?php if($results && $results->isNotEmpty()): ?>
                     <div class="border-t dark:border-neutral-700 pt-6 mt-6">
@@ -105,15 +96,15 @@ unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                                         <p><strong><?php echo e(__('CPF:')); ?></strong> <?php echo e($citizen->cpf ?: 'N/A'); ?></p>
                                         <p><strong><?php echo e(__('CNS:')); ?></strong> <?php echo e($citizen->cns ?: 'N/A'); ?></p>
                                         <p><strong><?php echo e(__('Mãe:')); ?></strong> <?php echo e($citizen->name_mother ?: 'N/A'); ?></p>
-                                        <p><strong><?php echo e(__('Nascimento:')); ?><p><strong><?php echo e(__('Nascimento:')); ?></strong> <?php echo e($citizen->date_of_birth ? \Carbon\Carbon::createFromFormat('d/m/Y', $citizen->date_of_birth)->format('d/m/Y') : 'N/A'); ?></p>
+                                        <p><strong><?php echo e(__('Nascimento:')); ?></strong> <?php echo e($citizen->date_of_birth ? \Carbon\Carbon::createFromFormat('d/m/Y', $citizen->date_of_birth)->format('d/m/Y') : 'N/A'); ?></p>
                                     </div>
-                                    <button type="button" wire:click="selectCitizenAndProceed(<?php echo e($citizen->id); ?>)"
-                                            class="inline-flex items-center justify-center shrink-0 w-full sm:w-auto px-3 py-2 bg-green-600 dark:bg-green-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500 dark:hover:bg-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-800 transition"
-                                            title="<?php echo e(__('Solicitar viagem para este cidadão')); ?>">
-                                        <span class="icon-[mdi--car-arrow-right] w-4 h-4 mr-1.5"></span>
-                                        <?php echo e(__('Selecionar e Continuar')); ?>
+                                    <a href="<?php echo e(route('prescriptions.request.form', ['citizenId' => $citizen->id])); ?>" wire:navigate
+                                       class="inline-flex items-center justify-center shrink-0 w-full sm:w-auto mt-2 sm:mt-0 px-3 py-2 bg-green-600 dark:bg-green-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500 dark:hover:bg-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-800 transition"
+                                       title="<?php echo e(__('Solicitar receita para este cidadão')); ?>">
+                                        <span class="icon-[mdi--text-box-plus-outline] w-4 h-4 mr-1.5"></span>
+                                        <?php echo e(__('Selecionar Cidadão')); ?>
 
-                                    </button>
+                                    </a>
                                 </li>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><!--[if ENDBLOCK]><![endif]-->
                         </ul>
@@ -126,4 +117,4 @@ unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
             </div>
         </div>
     </div>
-</div><?php /**PATH /var/www/html/system/resources/views/livewire/travel-requests/search-citizen-for-travel.blade.php ENDPATH**/ ?>
+</div><?php /**PATH /var/www/html/system/resources/views/livewire/prescriptions/request/search-citizen-step.blade.php ENDPATH**/ ?>

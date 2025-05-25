@@ -88,6 +88,21 @@ class User extends Authenticatable
         return $this->role === $role;
     }
 
+    /**
+     * Verifica se o usuário possui qualquer um dos papéis fornecidos.
+     *
+     * @param array<string> $roles
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        foreach ($roles as $role) {
+            if ($this->hasRole($role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ... dentro da classe User ...
     public function requestedPrescriptions() // Receitas que este usuário solicitou
     {
@@ -98,7 +113,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(Prescription::class, 'doctor_id');
     }
-
-
-
 }

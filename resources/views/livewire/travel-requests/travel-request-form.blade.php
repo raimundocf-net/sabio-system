@@ -5,7 +5,7 @@
 
     {{-- Container principal do formulário --}}
     <div class="py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-6xl mx-auto"> {{-- Aumentado o max-width --}}
+        <div class="max-w-6xl mx-auto">
             <div class="bg-white dark:bg-neutral-800 shadow-xl rounded-lg overflow-hidden">
 
                 {{-- Cabeçalho do Formulário --}}
@@ -84,14 +84,27 @@
                                         @error('form.procedure_type') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                                     </div>
 
+                                    {{-- CAMPO LOCAL DE EMBARQUE MODIFICADO --}}
                                     <div class="sm:col-span-3">
                                         <label for="form_departure_location" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200">{{__('Local de Embarque')}} <span class="text-red-500">*</span></label>
-                                        <div class="mt-2">
-                                            <input type="text" wire:model.defer="form.departure_location" id="form_departure_location" placeholder="{{__('Ex: PSF Centro, Residência do Paciente')}}"
-                                                   class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 dark:text-neutral-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-neutral-600 placeholder:text-gray-400 dark:placeholder:text-neutral-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-sky-500 sm:text-sm sm:leading-6 bg-white dark:bg-neutral-700 @error('form.departure_location') ring-red-500 dark:ring-red-400 @enderror">
+                                        <div class="mt-2 flex items-center gap-x-2">
+                                            <select wire:model="form.departure_location" id="form_departure_location" {{-- Removido .defer para atualização imediata ao selecionar novo item --}}
+                                            class="block w-full rounded-md border-0 py-2.5 pl-3 pr-10 text-gray-900 dark:text-neutral-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-neutral-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-sky-500 sm:text-sm sm:leading-6 bg-white dark:bg-neutral-700 @error('form.departure_location') ring-red-500 dark:ring-red-400 @enderror">
+                                                <option value="">{{__('Selecione um local...')}}</option>
+                                                @foreach($boardingLocations as $location)
+                                                    <option value="{{ $location->name }}">{{ $location->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            <button type="button" wire:click="openAddBoardingLocationModal"
+                                                    class="shrink-0 inline-flex items-center justify-center p-2 rounded-md bg-indigo-600 dark:bg-sky-500 text-white hover:bg-indigo-700 dark:hover:bg-sky-400 transition-colors"
+                                                    title="{{__('Adicionar Novo Local de Embarque')}}">
+                                                <span class="icon-[mdi--plus] w-5 h-5"></span>
+                                            </button>
                                         </div>
                                         @error('form.departure_location') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                                     </div>
+                                    {{-- FIM DA MODIFICAÇÃO DO LOCAL DE EMBARQUE --}}
+
 
                                     <div class="sm:col-span-3">
                                         <label for="form_destination_address" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200">{{__('Endereço de Destino')}} <span class="text-red-500">*</span></label>
@@ -117,7 +130,6 @@
                                                 <option value="MG">{{__('MG')}}</option>
                                                 @foreach($stateOptions as $value => $label)
                                                     <option value="{{ $value }}">{{ $label }}</option>
-                                                    <option value="{{ $value }}">{{ $label }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -141,8 +153,6 @@
                                         </div>
                                         @error('form.appointment_datetime') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                                     </div>
-
-
                                 </div>
                             </section>
 
@@ -182,7 +192,7 @@
                                             </div>
                                         </div>
                                     @endif
-                                    <div class="sm:col-span-2"> {{-- Ajuste a largura conforme necessário --}}
+                                    <div class="sm:col-span-2">
                                         <label for="number_of_passengers_form_input" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200">{{__('Número Total de Passageiros')}} <span class="text-red-500">*</span></label>
                                         <div class="mt-2">
                                             <input type="number" wire:model.defer="form.number_of_passengers" id="number_of_passengers_form_input" min="1"
@@ -225,7 +235,6 @@
                                                 <a href="{{ Storage::url($form['referral_document_path']) }}" target="_blank" class="inline-block">
                                                     <img src="{{ Storage::url($form['referral_document_path']) }}" alt="{{__('Preview da guia anexada')}}" class="max-h-48 w-auto rounded border border-gray-300 dark:border-neutral-600 shadow-sm hover:ring-2 hover:ring-indigo-500 dark:hover:ring-sky-500">
                                                 </a>
-                                                {{-- O botão de remover imagem faz mais sentido no formulário de EDIÇÃO --}}
                                             </div>
                                         @endif
                                     </div>
@@ -267,4 +276,59 @@
             </div>
         </div>
     </div>
+
+    {{-- MODAL PARA ADICIONAR NOVO LOCAL DE EMBARQUE --}}
+    @if($showAddBoardingLocationModal)
+        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4" {{-- Z-index alto --}}
+        x-data="{ show: @entangle('showAddBoardingLocationModal') }"
+             x-show="show"
+             x-trap.noscroll="show"
+             x-on:keydown.escape.window="show = false"
+             style="display: none;" {{-- Inicialmente escondido, Livewire controla --}}>
+
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-gray-500/75 dark:bg-neutral-900/80 transition-opacity" wire:click="closeAddBoardingLocationModal"></div>
+
+            {{-- Conteúdo do Modal --}}
+            <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl transform transition-all sm:max-w-lg w-full p-6 space-y-4"
+                 x-show="show"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+
+                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-neutral-100">{{__('Adicionar Novo Local de Embarque')}}</h3>
+
+                <div>
+                    <label for="newBoardingLocationName" class="block text-sm font-medium text-gray-700 dark:text-neutral-300">{{__('Nome do Local')}} <span class="text-red-500">*</span></label>
+                    <input type="text" wire:model.defer="newBoardingLocationName" id="newBoardingLocationName"
+                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-neutral-600 py-2 px-3 bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm focus:border-indigo-500 dark:focus:border-sky-500 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-sky-500 sm:text-sm @error('newBoardingLocationName') border-red-500 dark:border-red-400 @enderror">
+                    @error('newBoardingLocationName') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label for="newBoardingLocationAddress" class="block text-sm font-medium text-gray-700 dark:text-neutral-300">{{__('Endereço/Ponto de Referência (Opcional)')}}</label>
+                    <textarea wire:model.defer="newBoardingLocationAddress" id="newBoardingLocationAddress" rows="2"
+                              class="mt-1 block w-full rounded-md border-gray-300 dark:border-neutral-600 py-2 px-3 bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm focus:border-indigo-500 dark:focus:border-sky-500 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-sky-500 sm:text-sm @error('newBoardingLocationAddress') border-red-500 dark:border-red-400 @enderror"></textarea>
+                    @error('newBoardingLocationAddress') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-3">
+                    <button type="button" wire:click="closeAddBoardingLocationModal"
+                            class="rounded-md bg-white dark:bg-neutral-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-neutral-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-neutral-500 hover:bg-gray-50 dark:hover:bg-neutral-600">
+                        {{ __('Cancelar') }}
+                    </button>
+                    <button type="button" wire:click="saveNewBoardingLocation" wire:loading.attr="disabled"
+                            class="inline-flex items-center justify-center rounded-md bg-indigo-600 dark:bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 dark:hover:bg-sky-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:focus-visible:outline-sky-500 disabled:opacity-70">
+                        <span wire:loading wire:target="saveNewBoardingLocation" class="icon-[svg-spinners--6-dots-scale-middle] w-4 h-4 mr-1.5"></span>
+                        <span wire:loading.remove wire:target="saveNewBoardingLocation">{{ __('Salvar Local') }}</span>
+                        <span wire:loading wire:target="saveNewBoardingLocation">{{ __('Salvando...') }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+    {{-- FIM DO MODAL --}}
 </div>

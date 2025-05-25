@@ -4,6 +4,7 @@ namespace App\Livewire\TravelRequests;
 
 use App\Models\Citizen;
 use App\Models\TravelRequest;
+use App\Models\BoardingLocation; // Adicionado
 use App\Enums\ProcedureType;
 use App\Enums\TravelRequestStatus;
 use Livewire\Component;
@@ -11,18 +12,19 @@ use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Laravel\Facades\Image; // Se for usar Intervention Image
+use Intervention\Image\Laravel\Facades\Image;
 use Carbon\Carbon;
 use Illuminate\Validation\Rules\Enum as EnumRule;
 use Illuminate\Auth\Access\AuthorizationException;
-use Livewire\Attributes\On; // Para o listener do checkbox de acompanhante
+use Livewire\Attributes\On;
+use Illuminate\Support\Collection; // Adicionado
 
 #[Layout('components.layouts.app')]
 class TravelRequestForm extends Component
 {
     use WithFileUploads;
 
-    public Citizen $selectedCitizen; // Cidadão selecionado na etapa anterior
+    public Citizen $selectedCitizen;
     public string $pageTitle = "";
 
     public array $form = [
@@ -35,17 +37,16 @@ class TravelRequestForm extends Component
         'destination_state' => '',
         'reason' => '',
         'procedure_type' => '',
-        'departure_location' => '',
-        'appointment_datetime' => '', // Formato YYYY-MM-DDTHH:MM para input datetime-local
+        'departure_location' => '', // Este campo será usado pelo select, armazenando o NOME do local
+        'appointment_datetime' => '',
         'desired_departure_datetime' => '',
         'desired_return_datetime' => '',
         'referral_document_path' => null,
         'number_of_passengers' => 1,
         'observations' => '',
-        // status e requester_id serão definidos programaticamente no save
     ];
 
-    public $referralDocumentFile; // Para o upload do arquivo
+    public $referralDocumentFile;
 
     public array $procedureTypeOptions = [];
     public array $stateOptions = [
@@ -58,26 +59,39 @@ class TravelRequestForm extends Component
         'SP' => 'São Paulo', 'SE' => 'Sergipe', 'TO' => 'Tocantins',
     ];
 
+    // Novas propriedades para o modal de Local de Embarque
+    public Collection $boardingLocations; // Para popular o select
+    public bool $showAddBoardingLocationModal = false;
+    public string $newBoardingLocationName = '';
+    public ?string $newBoardingLocationAddress = null; // Endereço é opcional
+
     protected function rules(): array
     {
-        return [
-            'form.citizen_id' => 'required|integer|exists:citizens,id', // Validar se o citizen_id está presente
+        $rules = [ // Adicionando as regras existentes
+            'form.citizen_id' => 'required|integer|exists:citizens,id',
             'form.needs_companion' => 'required|boolean',
             'form.companion_name' => 'nullable|required_if:form.needs_companion,true|string|max:255',
-            'form.companion_cpf' => 'nullable|string|max:14', // Pode adicionar regex para CPF aqui
+            'form.companion_cpf' => 'nullable|string|max:14',
             'form.destination_address' => 'required|string|max:255',
             'form.destination_city' => 'required|string|max:150',
             'form.destination_state' => 'required|string|size:2',
             'form.reason' => 'required|string|max:1000',
             'form.procedure_type' => ['required', new EnumRule(ProcedureType::class)],
-            'form.departure_location' => 'required|string|max:255',
+            'form.departure_location' => 'required|string|max:255', // O select agora irá popular este campo
             'form.appointment_datetime' => 'required|date_format:Y-m-d\TH:i|after_or_equal:' . now()->format('Y-m-d\TH:i'),
             'form.desired_departure_datetime' => 'nullable|date_format:Y-m-d\TH:i|after_or_equal:now|before_or_equal:form.appointment_datetime',
             'form.desired_return_datetime' => 'nullable|date_format:Y-m-d\TH:i|after:form.appointment_datetime',
-            'referralDocumentFile' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // 5MB
+            'referralDocumentFile' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'form.number_of_passengers' => 'required|integer|min:1|max:50',
             'form.observations' => 'nullable|string|max:2000',
         ];
+
+        // Regras para o modal de novo local de embarque
+        if ($this->showAddBoardingLocationModal) {
+            $rules['newBoardingLocationName'] = 'required|string|max:191|unique:boarding_locations,name';
+            $rules['newBoardingLocationAddress'] = 'nullable|string|max:255';
+        }
+        return $rules;
     }
 
     protected function messages(): array
@@ -91,16 +105,21 @@ class TravelRequestForm extends Component
             'referralDocumentFile.image' => __('O arquivo da guia deve ser uma imagem (JPEG, PNG, JPG, GIF, WEBP).'),
             'referralDocumentFile.mimes' => __('Formato de imagem inválido. Use JPEG, PNG, JPG, GIF ou WEBP.'),
             'referralDocumentFile.max' => __('A imagem da guia não pode ser maior que 5MB.'),
+            'form.departure_location.required' => __('O local de embarque é obrigatório.'),
+
+            // Mensagens para o modal
+            'newBoardingLocationName.required' => 'O nome do novo local de embarque é obrigatório.',
+            'newBoardingLocationName.unique' => 'Este nome de local de embarque já existe.',
         ];
     }
 
-    public function mount(Citizen $citizen): void // Route Model Binding para Citizen
+    public function mount(Citizen $citizen): void
     {
         try {
             $this->authorize('create', TravelRequest::class);
         } catch (AuthorizationException $e) {
             session()->flash('error', __('Você não tem permissão para criar solicitações de viagem.'));
-            $this->redirectRoute('travel-requests.index', navigate: true); // Ou dashboard
+            $this->redirectRoute('travel-requests.index', navigate: true);
             return;
         }
 
@@ -108,37 +127,79 @@ class TravelRequestForm extends Component
         $this->form['citizen_id'] = $this->selectedCitizen->id;
         $this->pageTitle = "Nova Solicitação para: " . $this->selectedCitizen->name;
         $this->procedureTypeOptions = ProcedureType::options();
-        $this->form['appointment_datetime'] = now()->addDay()->setHour(8)->setMinute(0)->format('Y-m-d\TH:i'); // Default para amanhã às 08:00
-        $this->updatedFormNeedsCompanion($this->form['needs_companion']); // Inicializa número de passageiros
+        $this->form['appointment_datetime'] = now()->addDay()->setHour(8)->setMinute(0)->format('Y-m-d\TH:i');
+        $this->updatedFormNeedsCompanion($this->form['needs_companion']);
+
+        $this->loadBoardingLocations(); // Carrega os locais de embarque
     }
 
-    // Listener para o evento disparado pelo checkbox
+    public function loadBoardingLocations(): void
+    {
+        $this->boardingLocations = BoardingLocation::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+    }
+
     #[On('updated-form-needs-companion')]
     public function updatedFormNeedsCompanion($value): void
     {
         $this->form['needs_companion'] = (bool) $value;
         if ($this->form['needs_companion']) {
-            // Se já for 1, aumenta para 2. Se for maior que 1, mantém.
             $this->form['number_of_passengers'] = max(2, (int) $this->form['number_of_passengers']);
         } else {
-            $this->form['number_of_passengers'] = 1; // Apenas o paciente
-            $this->form['companion_name'] = ''; // Limpa nome do acompanhante
-            $this->form['companion_cpf'] = '';  // Limpa CPF do acompanhante
+            $this->form['number_of_passengers'] = 1;
+            $this->form['companion_name'] = '';
+            $this->form['companion_cpf'] = '';
         }
     }
+
+    public function openAddBoardingLocationModal(): void
+    {
+        $this->resetErrorBag(['newBoardingLocationName', 'newBoardingLocationAddress']);
+        $this->newBoardingLocationName = '';
+        $this->newBoardingLocationAddress = null;
+        $this->showAddBoardingLocationModal = true;
+    }
+
+    public function closeAddBoardingLocationModal(): void
+    {
+        $this->showAddBoardingLocationModal = false;
+        $this->resetErrorBag(['newBoardingLocationName', 'newBoardingLocationAddress']);
+        $this->newBoardingLocationName = '';
+        $this->newBoardingLocationAddress = null;
+    }
+
+    public function saveNewBoardingLocation(): void
+    {
+        $this->validate([
+            'newBoardingLocationName' => 'required|string|max:191|unique:boarding_locations,name',
+            'newBoardingLocationAddress' => 'nullable|string|max:255',
+        ]);
+
+        $newLocation = BoardingLocation::create([
+            'name' => $this->newBoardingLocationName,
+            'address' => $this->newBoardingLocationAddress,
+            'is_active' => true, // Por padrão, ativo
+        ]);
+
+        $this->loadBoardingLocations(); // Recarrega a lista
+        $this->form['departure_location'] = $newLocation->name; // Seleciona o nome do novo local
+
+        $this->closeAddBoardingLocationModal();
+        $this->dispatch('notify', ['message' => __('Novo local de embarque adicionado com sucesso!'), 'type' => 'success']);
+    }
+
 
     public function save(): void
     {
         $this->authorize('create', TravelRequest::class);
-        $validatedData = $this->validate(); // Valida $this->form e $this->referralDocumentFile
+        $validatedData = $this->validate();
         $formDataToSave = $validatedData['form'];
 
         if ($this->referralDocumentFile) {
             try {
                 $image = Image::read($this->referralDocumentFile->getRealPath());
-                $image->scaleDown(width: 1200); // Redimensiona mantendo proporção
+                $image->scaleDown(width: 1200);
                 $filename = 'referral_doc_' . $formDataToSave['citizen_id'] . '_' . uniqid() . '.webp';
-                $directory = 'travel_request_referrals'; // Ex: storage/app/public/travel_request_referrals
+                $directory = 'travel_request_referrals';
                 Storage::disk('public')->put($directory . '/' . $filename, (string) $image->toWebp(75));
                 $formDataToSave['referral_document_path'] = $directory . '/' . $filename;
             } catch (\Exception $e) {
@@ -150,8 +211,6 @@ class TravelRequestForm extends Component
 
         $formDataToSave['requester_id'] = Auth::id();
         $formDataToSave['status'] = TravelRequestStatus::PENDING_ASSIGNMENT->value;
-
-        // Assegura formato correto para o banco
         $formDataToSave['appointment_datetime'] = Carbon::parse($formDataToSave['appointment_datetime'])->toDateTimeString();
         $formDataToSave['desired_departure_datetime'] = !empty($formDataToSave['desired_departure_datetime'])
             ? Carbon::parse($formDataToSave['desired_departure_datetime'])->toDateTimeString()
@@ -167,8 +226,6 @@ class TravelRequestForm extends Component
 
     public function cancel(): void
     {
-        // Redireciona para a busca de cidadão, pois o cancelamento aqui significa
-        // que o usuário não quer preencher o formulário para ESTE cidadão.
         $this->redirectRoute('travel-requests.create.search-citizen', navigate: true);
     }
 

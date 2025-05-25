@@ -4,6 +4,8 @@ use App\Livewire\BoardingLocations\CreateBoardingLocation;
 use App\Livewire\BoardingLocations\IndexBoardingLocation;
 use App\Livewire\BoardingLocations\UpdateBoardingLocation;
 use App\Livewire\Citizens\ImportCitizen;
+use App\Livewire\Companions\IndexCompanion;
+use App\Livewire\Companions\ManageCompanion;
 use App\Livewire\DashboardSummary; // Corretamente usado para /dashboard
 use App\Livewire\Prescriptions\EditPrescription;
 use App\Livewire\Prescriptions\ListPrescriptions;
@@ -125,6 +127,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/create', CreateBoardingLocation::class)->name('create'); // ALTERADO
         Route::get('/{boardingLocation}/edit', UpdateBoardingLocation::class)->name('edit'); // ALTERADO
     });
+
+
+    /*
+  |--------------------------------------------------------------------------
+  | Companions Module (Acompanhantes)
+  |--------------------------------------------------------------------------
+  */
+    Route::prefix('companions')->name('companions.')->group(function () {
+        Route::get('/', IndexCompanion::class)->name('index');
+        Route::get('/create', ManageCompanion::class)->name('create');
+        Route::get('/{companionId}/edit', ManageCompanion::class)->name('edit');
+    });
+
 
 
 }); // Fim do grupo principal Route::middleware(['auth'])
