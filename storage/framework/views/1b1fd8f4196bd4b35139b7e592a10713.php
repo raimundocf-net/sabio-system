@@ -15,17 +15,7 @@
 
             </h1>
 
-            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', \App\Models\TravelRequest::class)): ?>
-                <div class="sm:hidden">
-                    <a href="<?php echo e(route('travel-requests.create')); ?>"
-                       wire:navigate
-                       class="ml-2 inline-flex items-center justify-center gap-1 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-sky-500 dark:hover:bg-sky-400 px-3 py-1.5 rounded-md shadow-sm transition-colors duration-150">
-                        <span class="icon-[mdi--plus-box-outline] w-5 h-5"></span>
-                        <?php echo e(__('Nova')); ?>
 
-                    </a>
-                </div>
-            <?php endif; ?>
         </div>
 
         
@@ -103,8 +93,8 @@
         
         <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', \App\Models\TravelRequest::class)): ?>
             <div class="hidden sm:flex w-full sm:w-auto sm:justify-end mt-3 sm:mt-0">
-                <a href="<?php echo e(route('travel-requests.create')); ?>"
-                   wire:navigate
+                <a href="<?php echo e(route('travel-requests.create.search-citizen')); ?>" 
+                wire:navigate
                    class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-sky-500 dark:hover:bg-sky-400 px-3 py-1.5 rounded-md shadow-sm transition-colors duration-150">
                     <span class="icon-[mdi--plus-box-outline] w-5 h-5"></span>
                     <?php echo e(__('Nova Solicitação')); ?>

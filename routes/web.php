@@ -90,25 +90,7 @@ Route::middleware(['auth'])->group(function () {
     // >>> FIM DAS ROTAS ATUALIZADAS <<<
 
 
-    Route::prefix('travel-requests')->name('travel-requests.')->group(function () {
-        Route::get('/', IndexTravelRequest::class)
-            ->name('index')
-            ->can('viewAny', \App\Models\TravelRequest::class);
 
-        // Rota para a busca de cidadão
-        Route::get('/create/search-citizen', SearchCitizenForTravelStep::class)
-            ->name('create.search-citizen') // Rota que o botão deve usar
-            ->can('create', \App\Models\TravelRequest::class);
-
-        // Rota para o formulário, após selecionar o cidadão
-        Route::get('/create/form/{citizen}', TravelRequestFormStep::class)
-            ->name('create.form')
-            ->can('create', \App\Models\TravelRequest::class);
-
-        Route::get('/{travelRequest}/edit', EditTravelRequest::class)
-            ->name('edit')
-            ->can('update', 'travelRequest');
-    });
 
 
 
