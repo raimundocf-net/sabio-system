@@ -14,8 +14,8 @@
 
             @can('create', \App\Models\TravelRequest::class)
                 <div class="sm:hidden">
-                    <a href="{{ route('travel-requests.create.search-citizen') }}" {{-- ROTA CORRIGIDA --}}
-                    wire:navigate
+                    <a href="{{ route('travel-requests.create.search-citizen') }}"
+                       wire:navigate
                        class="ml-2 inline-flex items-center justify-center gap-1 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-sky-500 dark:hover:bg-sky-400 px-3 py-1.5 rounded-md shadow-sm transition-colors duration-150">
                         <span class="icon-[mdi--plus-box-outline] w-5 h-5"></span>
                         {{ __('Nova') }}
@@ -62,7 +62,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="xl:col-span-1"> {{-- Ocupa uma coluna em telas extra largas, deixando o botão de novo mais à direita --}}
+            <div class="xl:col-span-1">
                 <label for="perPage" class="sr-only">{{__('Itens por página')}}</label>
                 <select wire:model.live="perPage" id="perPage" title="{{__('Itens por página')}}" class="block w-full rounded-md border-gray-300 dark:border-neutral-600 py-1.5 pl-3 pr-8 text-sm text-gray-700 dark:text-neutral-200 bg-white dark:bg-neutral-700 shadow-sm focus:border-indigo-500 dark:focus:border-sky-500 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-sky-500">
                     <option value="10">10 {{__('por pág.')}}</option>
@@ -90,8 +90,8 @@
 
         @can('create', \App\Models\TravelRequest::class)
             <div class="hidden sm:flex w-full sm:w-auto sm:justify-end mt-3 sm:mt-0 xl:absolute xl:right-8 xl:top-[3.75rem]">
-                <a href="{{ route('travel-requests.create.search-citizen') }}" {{-- ROTA CORRIGIDA --}}
-                wire:navigate
+                <a href="{{ route('travel-requests.create.search-citizen') }}"
+                   wire:navigate
                    class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-sky-500 dark:hover:bg-sky-400 px-3 py-1.5 rounded-md shadow-sm transition-colors duration-150">
                     <span class="icon-[mdi--plus-box-outline] w-5 h-5"></span>
                     {{ __('Nova Solicitação') }}
@@ -119,53 +119,55 @@
                 </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-neutral-800 divide-y divide-gray-200 dark:divide-neutral-700">
-                @forelse($travelRequests as $travelRequestItem) {{-- Alterado nome da variável de loop para evitar conflito com $request do Laravel --}}
-                <tr wire:key="travel-request-row-{{ $travelRequestItem->id }}" class="hover:bg-gray-50 dark:hover:bg-neutral-700/30 transition-colors duration-150">
-                    <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-neutral-100">{{ $travelRequestItem->id }}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
-                        <div class="flex flex-col">
-                            <span>{{ $travelRequestItem->citizen?->name ?? __('N/D') }}</span>
-                            <span class="text-xs text-gray-500 dark:text-neutral-400">
-                                    CPF: {{ $travelRequestItem->citizen?->cpf ?? __('N/D') }}
-                                </span>
-                        </div>
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
-                        {{ $travelRequestItem->destination_city }} / {{ $travelRequestItem->destination_state }}
-                        <div class="text-xs text-gray-500 dark:text-neutral-400 truncate max-w-xs" title="{{$travelRequestItem->destination_address}}">{{ Str::limit($travelRequestItem->destination_address, 30) }}</div>
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
-                        {{ $travelRequestItem->appointment_datetime ? \Carbon\Carbon::parse($travelRequestItem->appointment_datetime)->format('d/m/Y H:i') : __('N/D') }}
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
-                        {{ $travelRequestItem->procedure_type?->label() ?? ($travelRequestItem->procedure_type ?: __('N/D')) }}
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm">
-                            <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $travelRequestItem->status?->badgeClasses() ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
-                                {{ $travelRequestItem->status?->label() ?? ($travelRequestItem->status ?: __('N/D')) }}
+                @forelse($travelRequests as $travelRequestItem)
+                    <tr wire:key="travel-request-row-{{ $travelRequestItem->id }}" class="hover:bg-gray-50 dark:hover:bg-neutral-700/30 transition-colors duration-150">
+                        <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-neutral-100">{{ $travelRequestItem->id }}</td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
+                            <div class="flex flex-col">
+                                {{-- Assumindo que $travelRequestItem->citizen é um objeto CitizenPac --}}
+                                <span>{{ $travelRequestItem->citizen?->nome_do_cidadao ?? __('N/D') }}</span>
+                                <span class="text-xs text-gray-500 dark:text-neutral-400">
+                                CPF: {{ $travelRequestItem->citizen?->cpf ?? __('N/D') }}
                             </span>
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">{{ $travelRequestItem->requester?->name ?? __('N/D') }}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">{{ $travelRequestItem->created_at ? $travelRequestItem->created_at->format('d/m/Y H:i') : __('N/D')}}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium space-x-1 rtl:space-x-reverse">
-                        @can('update', $travelRequestItem)
-                            <a href="{{ route('travel-requests.edit', $travelRequestItem->id) }}"
-                               wire:navigate title="{{__('Editar Solicitação')}}"
-                               class="inline-flex items-center justify-center p-1.5 rounded-full text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-neutral-600 transition-colors">
-                                <span class="icon-[tabler--pencil] w-5 h-5"></span>
-                            </a>
-                        @endcan
-                        @can('delete', $travelRequestItem)
-                            @if(!in_array($travelRequestItem->status, [\App\Enums\TravelRequestStatus::CANCELLED_BY_USER, \App\Enums\TravelRequestStatus::CANCELLED_BY_ADMIN, \App\Enums\TravelRequestStatus::SCHEDULED]))
-                                <button wire:click="openCancelModal({{ $travelRequestItem->id }})"
-                                        title="{{__('Cancelar Solicitação')}}"
-                                        class="inline-flex items-center justify-center p-1.5 rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-neutral-600 transition-colors">
-                                    <span class="icon-[mdi--cancel-bold] w-5 h-5"></span>
-                                </button>
-                            @endif
-                        @endcan
-                    </td>
-                </tr>
+                            </div>
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
+                            {{ $travelRequestItem->destination_city }} / {{ $travelRequestItem->destination_state }}
+                            <div class="text-xs text-gray-500 dark:text-neutral-400 truncate max-w-xs" title="{{$travelRequestItem->destination_address}}">{{ Str::limit($travelRequestItem->destination_address, 30) }}</div>
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
+                            {{ $travelRequestItem->appointment_datetime ? \Carbon\Carbon::parse($travelRequestItem->appointment_datetime)->format('d/m/Y H:i') : __('N/D') }}
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
+                            {{ $travelRequestItem->procedure_type?->label() ?? ($travelRequestItem->procedure_type ?: __('N/D')) }}
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm">
+                        <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $travelRequestItem->status?->badgeClasses() ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+                            {{ $travelRequestItem->status?->label() ?? ($travelRequestItem->status ?: __('N/D')) }}
+                        </span>
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">{{ $travelRequestItem->requester?->name ?? __('N/D') }}</td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">{{ $travelRequestItem->created_at ? $travelRequestItem->created_at->format('d/m/Y H:i') : __('N/D')}}</td>
+                        <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium space-x-1 rtl:space-x-reverse">
+                            @can('update', $travelRequestItem)
+                                <a href="{{ route('travel-requests.edit', $travelRequestItem->id) }}"
+                                   wire:navigate title="{{__('Editar Solicitação')}}"
+                                   class="inline-flex items-center justify-center p-1.5 rounded-full text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-neutral-600 transition-colors">
+                                    <span class="icon-[tabler--pencil] w-5 h-5"></span>
+                                </a>
+                            @endcan
+                            @can('delete', $travelRequestItem)
+                                {{-- A condição @if para status foi mantida como estava no seu código original --}}
+                                @if(!in_array($travelRequestItem->status?->value, [\App\Enums\TravelRequestStatus::CANCELLED_BY_USER->value, \App\Enums\TravelRequestStatus::CANCELLED_BY_ADMIN->value, \App\Enums\TravelRequestStatus::SCHEDULED->value]))
+                                    <button wire:click="openCancelModal({{ $travelRequestItem->id }})"
+                                            title="{{__('Cancelar Solicitação')}}"
+                                            class="inline-flex items-center justify-center p-1.5 rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-neutral-600 transition-colors">
+                                        <span class="icon-[mdi--cancel-bold] w-5 h-5"></span>
+                                    </button>
+                                @endif
+                            @endcan
+                        </td>
+                    </tr>
                 @empty
                     <tr>
                         <td colspan="9" class="px-4 py-16 text-center text-sm text-gray-500 dark:text-neutral-400">
@@ -207,7 +209,8 @@
                             <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-neutral-100" id="modal-title-cancel-request">{{ __('Confirmar Cancelamento da Solicitação') }} #{{$cancellingTravelRequest->id}}</h3>
                             <div class="mt-2">
                                 <p class="text-sm text-gray-600 dark:text-neutral-300">
-                                    {{ __('Paciente:') }} <strong>{{ $cancellingTravelRequest->citizen?->name }}</strong><br>
+                                    {{-- Ajustado para nome_do_cidadao --}}
+                                    {{ __('Paciente:') }} <strong>{{ $cancellingTravelRequest->citizen?->nome_do_cidadao ?? __('N/D') }}</strong><br>
                                     {{ __('Destino:') }} <strong>{{ $cancellingTravelRequest->destination_city }} - {{ $cancellingTravelRequest->destination_state }}</strong><br>
                                     {{ __('Compromisso:') }} <strong>{{ $cancellingTravelRequest->appointment_datetime ? \Carbon\Carbon::parse($cancellingTravelRequest->appointment_datetime)->isoFormat('LLLL') : 'N/D' }}</strong>
                                 </p>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CitizenPacImportController;
 use App\Livewire\BoardingLocations\CreateBoardingLocation;
 use App\Livewire\BoardingLocations\IndexBoardingLocation;
 use App\Livewire\BoardingLocations\UpdateBoardingLocation;
@@ -13,8 +14,10 @@ use App\Livewire\Prescriptions\Request\PrescriptionFormStep;
 use App\Livewire\Prescriptions\Request\SearchCitizenStep;
 use App\Livewire\Units\IndexUnit;
 use App\Livewire\Units\ManageUnit;
+use App\Livewire\Users\CreateUser;
 use App\Livewire\Users\IndexUser;
 use App\Livewire\Users\ManageUser;
+use App\Livewire\Users\UpdateUser;
 use App\Livewire\Vehicles\CreateVehicle;
 use App\Livewire\Vehicles\IndexVehicle;
 use App\Livewire\Vehicles\ManageVehicle;
@@ -49,14 +52,14 @@ Route::middleware(['auth'])->group(function () {
         // Se ManageUnit::mount(int $unitId), então {unitId} está OK.
     });
 
-    // Rotas para Usuários
-    // Sugestão: Proteger o grupo de usuários com viewAny
-    // Route::middleware(['can:viewAny,' . \App\Models\User::class])->prefix('users')->name('users.')->group(function () {
+    // Rotas para USERS
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', IndexUser::class)->name('index');
-        Route::get('/create', ManageUser::class)->name('create'); // Adicionar ->middleware('can:create,' . \App\Models\User::class)
-        Route::get('/{user}/edit', ManageUser::class)->name('edit'); // Usar {user} se ManageUser::mount(User $user)
+        Route::get('/create', CreateUser::class)->name('create');
+        Route::get('/{user}/edit', UpdateUser::class)->name('edit');
     });
+
+
 
     // Rota para Importar Cidadãos (já corretamente protegida)
     Route::middleware(['can:import-citizens'])->group(function () {
@@ -93,28 +96,28 @@ Route::middleware(['auth'])->group(function () {
 
 
     /*
-    |--------------------------------------------------------------------------
-    | Travel Requests Module
-    |--------------------------------------------------------------------------
-    */
+  |--------------------------------------------------------------------------
+  | Travel Requests Module
+  |--------------------------------------------------------------------------
+  */
     Route::prefix('travel-requests')->name('travel-requests.')->group(function () {
-        Route::get('/', \App\Livewire\TravelRequests\IndexTravelRequest::class)->name('index')
-            ->can('viewAny', \App\Models\TravelRequest::class);
+        Route::get('/', \App\Livewire\TravelRequests\IndexTravelRequest::class)->name('index');
+        // ->can('viewAny', \App\Models\TravelRequest::class); // REMOVIDO
 
         // Etapa 1: Busca de cidadão
         Route::get('/create/search-citizen', \App\Livewire\TravelRequests\SearchCitizenForTravel::class)
-            ->name('create.search-citizen')
-            ->can('create', \App\Models\TravelRequest::class);
+            ->name('create.search-citizen');
+        // ->can('create', \App\Models\TravelRequest::class); // REMOVIDO
 
         // Etapa 2: Formulário de solicitação (após selecionar o cidadão)
         // O parâmetro {citizen} permitirá o Route Model Binding
         Route::get('/create/form/{citizen}', \App\Livewire\TravelRequests\TravelRequestForm::class)
-            ->name('create.form')
-            ->can('create', \App\Models\TravelRequest::class);
+            ->name('create.form');
+        // ->can('create', \App\Models\TravelRequest::class); // REMOVIDO
 
         Route::get('/{travelRequest}/edit', \App\Livewire\TravelRequests\EditTravelRequest::class)
-            ->name('edit')
-            ->can('update', 'travelRequest'); // 'travelRequest' é o nome do parâmetro para RMB
+            ->name('edit');
+        // ->can('update', 'travelRequest'); // REMOVIDO
     });
 
     /*
@@ -141,6 +144,8 @@ Route::middleware(['auth'])->group(function () {
     });
 
 
+    Route::get('/citizens/import-pac', [CitizenPacImportController::class, 'showForm'])->name('citizens.import-pac.show');
+    Route::post('/citizens/import-pac', [CitizenPacImportController::class, 'import'])->name('citizens.import-pac.import');
 
 }); // Fim do grupo principal Route::middleware(['auth'])
 

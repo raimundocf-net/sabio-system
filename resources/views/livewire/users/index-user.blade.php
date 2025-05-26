@@ -44,8 +44,9 @@
                 <select wire:model.live="filterRole" id="filterRole"
                         class="mt-1 block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 dark:text-neutral-100 bg-white dark:bg-neutral-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-neutral-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-sky-500 sm:text-sm">
                     <option value="">{{__('Todos os Papéis')}}</option>
-                    @foreach($availableRoles as $role)
-                        <option value="{{ $role }}">{{ __(ucfirst(str_replace('_', ' ', $role))) }}</option>
+                    {{-- Ajuste aqui para usar a chave e o label corretamente --}}
+                    @foreach($availableRoles as $roleKey => $roleLabel)
+                        <option value="{{ $roleKey }}">{{ __($roleLabel) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -67,6 +68,7 @@
                 <thead class="bg-neutral-100 dark:bg-neutral-800">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300">{{ __('Nome') }}</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300">{{ __('Microárea') }}</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300">{{ __('Email') }}</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300">{{ __('Unidade') }}</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300">{{ __('Papel') }}</th>
@@ -77,6 +79,7 @@
                 @forelse ($users as $user)
                     <tr wire:key="user-{{ $user->id }}">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">{{ $user->name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">{{ $user->microarea }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-300">{{ $user->email }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-300">{{ $user->unit?->name ?: __('N/A') }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-300">{{ __(ucfirst(str_replace('_', ' ', $user->role))) }}</td>

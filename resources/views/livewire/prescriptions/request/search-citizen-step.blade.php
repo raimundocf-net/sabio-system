@@ -7,7 +7,8 @@
         <div class="bg-white dark:bg-neutral-800 shadow-xl sm:rounded-lg">
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-neutral-100 mb-1">{{ __('Para Solicitar uma Receita, Busque por um Cidadão') }}</h2>
-                <p class="text-sm text-gray-600 dark:text-neutral-300 mb-6">{{__('Preencha um ou mais campos abaixo para encontrar o cidadão.')}}</p>
+                {{-- Texto ajustado pois agora há apenas um campo principal de busca --}}
+                <p class="text-sm text-gray-600 dark:text-neutral-300 mb-6">{{__('Preencha o campo abaixo para encontrar o cidadão.')}}</p>
 
                 <form wire:submit.prevent="searchCitizen" class="space-y-4">
                     <div>
@@ -19,6 +20,8 @@
                         @error('search') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
 
+                    {{-- Bloco do campo de busca pelo nome da mãe REMOVIDO --}}
+                    {{--
                     <div>
                         <label for="searchMother" class="block text-sm font-medium leading-6 text-gray-900 dark:text-neutral-200">{{ __('Nome da Mãe (Opcional)') }}</label>
                         <div class="mt-2">
@@ -27,6 +30,7 @@
                         </div>
                         @error('searchMother') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
+                    --}}
 
                     <div class="flex flex-col sm:flex-row gap-3 pt-2">
                         <a href="{{ route('prescriptions.index') }}" wire:navigate
@@ -61,11 +65,12 @@
                             @foreach ($results as $citizen)
                                 <li wire:key="citizen-result-{{$citizen->id}}" class="border dark:border-neutral-700 p-4 rounded-md shadow-sm text-sm text-gray-700 dark:text-neutral-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-neutral-700/50">
                                     <div class="flex-grow">
-                                        <p><strong>{{__('Nome:')}}</strong> {{ $citizen->name ?: $citizen->name }}</p> {{-- Ajuste para o nome correto do campo --}}
+                                        {{-- Ajustado para usar 'nome_do_cidadao' do modelo CitizenPac --}}
+                                        <p><strong>{{__('Nome:')}}</strong> {{ $citizen->nome_do_cidadao ?: 'N/A' }}</p>
                                         <p><strong>{{__('CPF:')}}</strong> {{ $citizen->cpf ?: 'N/A' }}</p>
                                         <p><strong>{{__('CNS:')}}</strong> {{ $citizen->cns ?: 'N/A' }}</p>
-                                        <p><strong>{{__('Mãe:')}}</strong> {{ $citizen->name_mother ?: 'N/A' }}</p>
-                                        <p><strong>{{__('Nascimento:')}}</strong> {{ $citizen->date_of_birth ? \Carbon\Carbon::createFromFormat('d/m/Y', $citizen->date_of_birth)->format('d/m/Y') : 'N/A' }}</p>
+                                        <p><strong>{{__('Micro Área:')}}</strong> {{ $citizen->microarea ?: 'N/A' }}</p>
+                                        <p><strong>{{__('Nascimento:')}}</strong> {{ $citizen->data_de_nascimento ? \Carbon\Carbon::parse($citizen->data_de_nascimento)->format('d/m/Y') : 'N/A' }}</p>
                                     </div>
                                     <a href="{{ route('prescriptions.request.form', ['citizenId' => $citizen->id]) }}" wire:navigate
                                        class="inline-flex items-center justify-center shrink-0 w-full sm:w-auto mt-2 sm:mt-0 px-3 py-2 bg-green-600 dark:bg-green-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500 dark:hover:bg-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-800 transition"
@@ -77,10 +82,17 @@
                             @endforeach
                         </ul>
                     </div>
-                @elseif (is_array($results) && count($results) === 0 && (!empty($search) || !empty($searchMother))) {{-- Checa se results é array vazio após uma busca --}}
-                <div class="border-t dark:border-neutral-700 pt-6 mt-6">
-                    <p class="text-center text-orange-600 dark:text-orange-400">{{ __('Nenhum cidadão encontrado com os critérios fornecidos.') }}</p>
-                </div>
+                    {{-- Condição ajustada para não depender de $searchMother --}}
+                @elseif ($results && $results->isEmpty() && !empty($search))
+                    <div class="border-t dark:border-neutral-700 pt-6 mt-6">
+                        {{-- A mensagem de 'Nenhum cidadão encontrado' já é tratada pelo session()->flash('info_message') no componente PHP
+                             e incluída via @include('livewire.partials.session-messages')
+                             Se quiser uma mensagem específica aqui também, pode manter ou adaptar.
+                             Para evitar duplicidade, confie no session-messages ou remova o flash do PHP e coloque aqui.
+                             Por ora, vou manter o comportamento de exibir a mensagem via session-messages.
+                        --}}
+                        {{-- <p class="text-center text-orange-600 dark:text-orange-400">{{ __('Nenhum cidadão encontrado com os critérios fornecidos.') }}</p> --}}
+                    </div>
                 @endif
             </div>
         </div>

@@ -2,7 +2,8 @@
 
 namespace App\Livewire\Prescriptions\Request;
 
-use App\Models\Citizen;
+// use App\Models\Citizen; // REMOVER ESTA LINHA
+use App\Models\CitizenPac; // ADICIONAR ESTA LINHA (ou garantir que está usando CitizenPac consistentemente)
 use App\Models\Prescription;
 use App\Models\Unit;
 use App\Models\User;
@@ -10,24 +11,25 @@ use App\Enums\PrescriptionStatus;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule as ValidationRule; // Alias para não conflitar com Rule do Livewire
+use Illuminate\Validation\Rule as ValidationRule;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
-use Illuminate\Validation\Rules\File; // Para validação mais detalhada de arquivos
+use Illuminate\Validation\Rules\File;
 
 #[Layout('components.layouts.app')]
 class PrescriptionFormStep extends Component
 {
     use WithFileUploads;
 
-    public Citizen $citizen;
+    // public Citizen $citizen; // ALTERAR
+    public CitizenPac $citizen; // <<< MUDANÇA AQUI: Usar CitizenPac
     public string $pageTitle = "Solicitar Receita";
 
     public ?int $unit_id = null;
     public ?int $doctor_id = null;
     public string $prescriptionRequestDetails = '';
-    public array $prescriptionImages = []; // Alterado para array para múltiplos uploads
+    public array $prescriptionImages = [];
 
     public ?string $currentUserUnitName = null;
     public \Illuminate\Database\Eloquent\Collection $doctorsList;
@@ -36,13 +38,13 @@ class PrescriptionFormStep extends Component
     {
         return [
             'unit_id' => 'required|integer|exists:units,id',
-            'doctor_id' => 'nullable|integer|exists:users,id', // Ajustado para nullable
+            'doctor_id' => 'nullable|integer|exists:users,id',
             'prescriptionRequestDetails' => 'required|string|min:5|max:2000',
-            'prescriptionImages' => 'nullable|array|max:3', // No máximo 3 arquivos
-            'prescriptionImages.*' => [ // Validação para cada arquivo no array
+            'prescriptionImages' => 'nullable|array|max:3',
+            'prescriptionImages.*' => [
                 'image',
                 'mimes:jpeg,png,jpg,gif,webp',
-                'max:5120' // 5MB por arquivo
+                'max:5120'
             ],
         ];
     }
@@ -57,19 +59,26 @@ class PrescriptionFormStep extends Component
 
     public function mount(int $citizenId)
     {
-        $this->citizen = Citizen::findOrFail($citizenId);
-        $citizenName = $this->citizen->name ?? $this->citizen->nome_do_cidadao ?? 'Cidadão';
+        // $this->citizen = Citizen::findOrFail($citizenId); // ALTERAR
+        $this->citizen = CitizenPac::findOrFail($citizenId); // <<< MUDANÇA AQUI: Buscar em CitizenPac
+
+        // O modelo CitizenPac usa 'nome_do_cidadao'
+        $citizenName = $this->citizen->nome_do_cidadao ?? 'Cidadão'; // <<< AJUSTE AQUI
+
         $this->pageTitle = __("Solicitar Receita para: ") . $citizenName;
         $loggedInUser = Auth::user();
+
         if (!$loggedInUser || !$loggedInUser->unit_id) {
             $this->dispatch('notify', ['message' => 'Você precisa estar associado a uma unidade de saúde para solicitar receitas.', 'type' => 'error']);
-            $this->doctorsList = collect();
+            $this->doctorsList = collect(); // Inicializa como coleção vazia
             $this->currentUserUnitName = null;
-            return;
+            return; // Interrompe a execução se o usuário não tiver unidade
         }
+
         $this->unit_id = $loggedInUser->unit_id;
         $unitModel = Unit::find($this->unit_id);
         $this->currentUserUnitName = $unitModel?->name;
+
         $this->doctorsList = User::where('role', 'doctor')
             //->where('unit_id', $this->unit_id) // Descomente se médicos são por unidade
             ->orderBy('name')
@@ -92,28 +101,26 @@ class PrescriptionFormStep extends Component
             foreach ($this->prescriptionImages as $imageFile) {
                 try {
                     $image = Image::read($imageFile->getRealPath());
-                    $image->scaleDown(width: 1200);
-                    $filename = 'rx_img_' . uniqid() . '_' . time() . '.webp';
-                    $directory = 'prescription_images';
-                    Storage::disk('public')->put($directory . '/' . $filename, (string) $image->toWebp(75));
+                    $image->scaleDown(width: 1200); // Redimensiona mantendo a proporção, largura máxima 1200px
+                    $filename = 'rx_img_' . uniqid() . '_' . time() . '.webp'; // Nome único para o arquivo
+                    $directory = 'prescription_images'; // Diretório de armazenamento
+                    Storage::disk('public')->put($directory . '/' . $filename, (string) $image->toWebp(75)); // Salva como WebP com qualidade 75
                     $uploadedImagePaths[] = $directory . '/' . $filename;
                 } catch (\Exception $e) {
                     $this->dispatch('notify', ['message' => 'Erro ao processar uma das imagens: ' . $e->getMessage(), 'type' => 'error']);
-                    // Considerar se deve parar o processo ou continuar sem a imagem problemática
-                    // Se uma imagem falhar, pode ser melhor parar e informar o usuário.
-                    return;
+                    return; // Interrompe se houver erro com imagem
                 }
             }
         }
 
         Prescription::create([
-            'citizen_id' => $this->citizen->id,
+            'citizen_id' => $this->citizen->id, // citizen_id continua o mesmo
             'user_id' => Auth::id(),
             'unit_id' => $this->unit_id,
-            'doctor_id' => $validatedData['doctor_id'] ?? null, // Usa null se não fornecido
+            'doctor_id' => $validatedData['doctor_id'] ?? null,
             'status' => PrescriptionStatus::REQUESTED->value,
             'prescription_details' => $validatedData['prescriptionRequestDetails'],
-            'image_paths' => !empty($uploadedImagePaths) ? $uploadedImagePaths : null, // Salva array de caminhos
+            'image_paths' => !empty($uploadedImagePaths) ? $uploadedImagePaths : null,
         ]);
 
         $this->dispatch('notify', ['message' => 'Solicitação de receita enviada com sucesso!', 'type' => 'success']);
@@ -124,22 +131,17 @@ class PrescriptionFormStep extends Component
     private function resetFormFields()
     {
         $this->prescriptionRequestDetails = '';
-        $this->prescriptionImages = []; // Reseta o array de imagens
-        $this->doctor_id = null; // Reseta o médico selecionado
-        // Não resetar unit_id e currentUserUnitName pois são do usuário logado
+        $this->prescriptionImages = [];
+        $this->doctor_id = null;
     }
-
 
     public function removeImage(int $index): void
     {
         if (isset($this->prescriptionImages[$index])) {
-            // Se for um arquivo temporário do Livewire, ele será "esquecido"
             array_splice($this->prescriptionImages, $index, 1);
-            // Para limpar o erro de validação específico deste item se houver:
             $this->resetValidation('prescriptionImages.' . $index);
         }
     }
-
 
     public function render()
     {

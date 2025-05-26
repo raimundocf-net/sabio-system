@@ -2,69 +2,73 @@
 
 namespace App\Livewire\Prescriptions\Request;
 
-use App\Models\Citizen;
+use App\Models\CitizenPac;
+use App\Models\User; // Adicionado para type hinting e verificação de role
+use Illuminate\Support\Facades\Auth; // Adicionado para obter o usuário autenticado
 use Livewire\Component;
 use Livewire\Attributes\Layout;
-use Illuminate\Support\Facades\Validator as LaravelValidator; // Alias para não confundir com o Validator do Livewire Attributes
 
 #[Layout('components.layouts.app')]
 class SearchCitizenStep extends Component
 {
     public string $search = '';
-    public string $searchMother = '';
-    public $results = null; // Pode ser uma coleção ou null
+    public $results = null;
     public string $pageTitle = "Solicitar Receita: Buscar Cidadão";
 
-    // Não usaremos as rules do Livewire aqui, faremos a validação manualmente
-    // para lidar com a lógica condicional de forma mais clara no método.
+    protected function rules(): array
+    {
+        return [
+            'search' => 'required|string|min:3',
+        ];
+    }
+
+    protected $messages = [
+        'search.required' => 'O campo de busca é obrigatório.',
+        'search.min' => 'A busca deve ter pelo menos 3 caracteres.',
+    ];
+
+    public function updatedSearch(string $value): void
+    {
+        $this->validateOnly('search');
+    }
 
     public function searchCitizen()
     {
-        $this->results = null; // Limpa resultados anteriores
-        session()->forget('info_message'); // Limpa mensagens anteriores
-        $this->resetErrorBag(); // Limpa erros de validação anteriores
+        $this->results = null;
+        session()->forget('info_message');
+        $this->resetErrorBag();
+        $this->validate();
 
         $trimmedSearch = trim($this->search);
-        $trimmedSearchMother = trim($this->searchMother);
+        $query = CitizenPac::query();
+        $user = Auth::user(); // Obter o usuário autenticado
 
-        // Validação manual
-        if (!empty($trimmedSearchMother)) {
-            if (strlen($trimmedSearchMother) < 3) {
-                $this->addError('searchMother', 'O nome da mãe deve ter pelo menos 3 caracteres.');
+        // Aplicar filtro de microárea para ACS
+        if ($user && $user->hasRole('acs')) { //
+            // Assumindo que o modelo User tem um atributo 'microarea'
+            // Certifique-se de que este campo existe na sua tabela 'users' e no modelo User.
+            if (!empty($user->microarea)) {
+                $query->where('microarea', $user->microarea);
+            } else {
+                // Se o ACS não tiver microárea definida, não retorna nenhum cidadão,
+                // ou você pode optar por não aplicar filtro algum (removendo este else).
+                // Retornar vazio é mais seguro para garantir que ele só veja sua área.
+                $this->results = collect(); // Retorna uma coleção vazia
+                session()->flash('info_message', 'Sua microárea não está definida. Não é possível buscar cidadãos.');
                 return;
             }
-            // Se searchMother está preenchido, search é ignorado e não precisa ser validado como obrigatório.
-        } elseif (!empty($trimmedSearch)) {
-            if (strlen($trimmedSearch) < 3) {
-                $this->addError('search', 'A busca por cidadão deve ter pelo menos 3 caracteres.');
-                return;
-            }
-        } else {
-            // Nenhum dos campos foi preenchido (ou apenas espaços)
-            $this->addError('search', 'Preencha o campo de busca principal ou o nome da mãe.');
-            return;
         }
 
-        $query = Citizen::query();
+        $term = "%{$trimmedSearch}%";
+        $query->where(function ($q) use ($term) {
+            $q->whereRaw('public.unaccent_lower(nome_do_cidadao) LIKE public.unaccent_lower(?)', [$term])
+                ->orWhereRaw('public.unaccent_lower(cpf) LIKE public.unaccent_lower(?)', [$term])
+                ->orWhereRaw('public.unaccent_lower(cns) LIKE public.unaccent_lower(?)', [$term]);
+        });
 
-        if (!empty($trimmedSearchMother)) {
-            // Busca prioritariamente pelo nome da mãe, se preenchido
-            $motherTerm = "%{$trimmedSearchMother}%";
-            $query->whereRaw('public.unaccent_lower(name_mother) LIKE public.unaccent_lower(?)', [$motherTerm]);
-        } else {
-            // Senão, busca pelo campo principal (nome, cpf, cns do cidadão)
-            $term = "%{$trimmedSearch}%";
-            $query->where(function ($q) use ($term) {
-                // Os nomes das colunas (name, cpf, cns) devem corresponder à sua tabela 'citizens'
-                $q->whereRaw('public.unaccent_lower(name) LIKE public.unaccent_lower(?)', [$term])
-                    ->orWhereRaw('public.unaccent_lower(cpf) LIKE public.unaccent_lower(?)', [$term])
-                    ->orWhereRaw('public.unaccent_lower(cns) LIKE public.unaccent_lower(?)', [$term]);
-            });
-        }
+        $this->results = $query->orderBy('nome_do_cidadao')->limit(10)->get();
 
-        $this->results = $query->orderBy('name')->limit(10)->get(); // Adicionado orderBy para consistência
-
-        if ($this->results->isEmpty()) {
+        if ($this->results->isEmpty() && !session()->has('info_message')) {
             session()->flash('info_message', 'Nenhum cidadão encontrado com os critérios fornecidos.');
         }
     }
@@ -72,7 +76,6 @@ class SearchCitizenStep extends Component
     public function clearSearch()
     {
         $this->search = '';
-        $this->searchMother = '';
         $this->results = null;
         $this->resetErrorBag();
         session()->forget('info_message');

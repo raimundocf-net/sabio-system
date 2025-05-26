@@ -35,10 +35,10 @@
                                 </h2>
                                 <div class="text-sm">
                                     <p class="text-gray-700 dark:text-neutral-200">
-                                        <strong class="font-medium">{{__('Nome:')}}</strong> {{ $selectedCitizen->name }}
+                                        <strong class="font-medium">{{__('Nome:')}}</strong> {{ $selectedCitizen->nome_do_cidadao }}
                                     </p>
                                     <p class="text-xs text-gray-500 dark:text-neutral-400 mt-1">
-                                        CPF: {{ $selectedCitizen->cpf ?? __('N/D') }} | CNS: {{ $selectedCitizen->cns ?? __('N/D') }} | Nasc: {{ $selectedCitizen->date_of_birth ? \Carbon\Carbon::createFromFormat('d/m/Y', $selectedCitizen->date_of_birth)->format('d/m/Y') : __('N/D') }}
+                                        CPF: {{ $selectedCitizen->cpf ?? __('N/D') }} | CNS: {{ $selectedCitizen->cns ?? __('N/D') }} | Idade: {{ $selectedCitizen->idade ? : __('N/D') }}
                                     </p>
                                 </div>
                                 @error('form.citizen_id')

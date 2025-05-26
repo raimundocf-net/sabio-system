@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
 
             // Paciente e Acompanhante
-            $table->foreignId('citizen_id')->constrained('citizens')->onDelete('cascade')->comment('ID do Cidadão/Paciente');
+            $table->foreignId('citizen_id')->constrained('citizen_pacs')->onDelete('cascade');
             $table->boolean('needs_companion')->default(false)->comment('Necessita de acompanhante?');
             $table->string('companion_name')->nullable()->comment('Nome do acompanhante');
             $table->string('companion_cpf', 14)->nullable()->comment('CPF do acompanhante (com máscara)'); // Permite máscara

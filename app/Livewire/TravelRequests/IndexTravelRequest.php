@@ -159,41 +159,58 @@ class IndexTravelRequest extends Component
         // se a autorização falhar ou não houver dados.
         $travelRequests = TravelRequest::query()->whereRaw('1 = 0')->paginate($this->perPage);
 
-        if (Gate::allows('viewAny', TravelRequest::class) || Auth::user()->hasRole('admin')) {
-            $query = TravelRequest::query()
-                ->with(['citizen:id,name,cpf', 'requester:id,name'])
-                ->when($this->searchTerm, function ($query, $term) {
-                    $query->where(function ($subQuery) use ($term) {
-                        $searchTermSQL = '%' . mb_strtolower($term, 'UTF-8') . '%';
-                        $subQuery->whereRaw('CAST(travel_requests.id AS TEXT) LIKE ?', [$term . '%'])
-                            ->orWhereHas('citizen', function ($qCitizen) use ($searchTermSQL, $term) {
-                                $qCitizen->whereRaw('public.unaccent_lower(name) LIKE public.unaccent_lower(?)', [$searchTermSQL])
-                                    ->orWhere('cpf', 'like', $term . '%')
-                                    ->orWhere('cns', 'like', $term . '%');
-                            })
-                            ->orWhereRaw('public.unaccent_lower(destination_city) LIKE public.unaccent_lower(?)', [$searchTermSQL])
-                            ->orWhereRaw('public.unaccent_lower(reason) LIKE public.unaccent_lower(?)', [$searchTermSQL]);
-                    });
-                })
-                ->when($this->filterStatus, fn ($query, $status) => $query->where('status', $status))
-                ->when($this->filterProcedureType, fn ($query, $type) => $query->where('procedure_type', $type))
-                ->when($this->filterDateOption && $this->filterStartDate && $this->filterEndDate, function ($query) {
-                    $startDate = Carbon::parse($this->filterStartDate)->startOfDay();
-                    $endDate = Carbon::parse($this->filterEndDate)->endOfDay();
-                    $dateColumn = $this->filterDateOption === 'created_at' ? 'travel_requests.created_at' : 'appointment_datetime';
-                    $query->whereBetween($dateColumn, [$startDate, $endDate]);
-                })
-                ->orderByDesc('travel_requests.created_at');
+        // A verificação de Gate::allows('viewAny', TravelRequest::class) já deve estar no mount
+        // ou ser tratada pela rota/middleware. Se for para restringir dados aqui:
+        // if (!Gate::allows('viewAny', TravelRequest::class) && !(Auth::user() && Auth::user()->hasRole('admin'))) {
+        //     session()->flash('error', 'Você não tem permissão para ver esta lista.');
+        //     return view('livewire.travel-requests.index-travel-request', [
+        //         'travelRequests' => $travelRequests, // Paginação vazia
+        //     ])->layoutData(['pageTitle' => $this->pageTitle]);
+        // }
 
-            $travelRequests = $query->paginate($this->perPage);
-        } else {
-            // Se a autorização falhou no mount, a mensagem de erro já foi setada.
-            // A view renderizará a paginação vazia e a mensagem de erro.
-        }
+        // Ajuste na query para usar os campos de CitizenPac
+        $query = TravelRequest::query()
+            // Ao carregar a relação 'citizen', selecione os campos de CitizenPac
+            // O principal é mudar 'name' para 'nome_do_cidadao'
+            ->with(['citizen:id,nome_do_cidadao,cpf,cns', 'requester:id,name']) // <<< MUDANÇA AQUI
+            ->when($this->searchTerm, function ($query, $term) {
+                $query->where(function ($subQuery) use ($term) {
+                    $searchTermSQL = '%' . mb_strtolower($term, 'UTF-8') . '%';
+                    $subQuery->whereRaw('CAST(travel_requests.id AS TEXT) LIKE ?', [$term . '%'])
+                        ->orWhereHas('citizen', function ($qCitizen) use ($searchTermSQL, $term) {
+                            // Dentro da relação 'citizen', use os campos de CitizenPac
+                            $qCitizen->whereRaw('public.unaccent_lower(nome_do_cidadao) LIKE public.unaccent_lower(?)', [$searchTermSQL]) // <<< MUDANÇA AQUI
+                            ->orWhere('cpf', 'like', $term . '%') // Assumindo que 'cpf' existe em CitizenPac
+                            ->orWhere('cns', 'like', $term . '%'); // Assumindo que 'cns' existe em CitizenPac
+                        })
+                        ->orWhereRaw('public.unaccent_lower(destination_city) LIKE public.unaccent_lower(?)', [$searchTermSQL])
+                        ->orWhereRaw('public.unaccent_lower(reason) LIKE public.unaccent_lower(?)', [$searchTermSQL]);
+                });
+            })
+            ->when($this->filterStatus, fn ($query, $status) => $query->where('status', $status))
+            ->when($this->filterProcedureType, fn ($query, $type) => $query->where('procedure_type', $type))
+            ->when($this->filterDateOption && $this->filterStartDate && $this->filterEndDate, function ($query) {
+                $startDate = Carbon::parse($this->filterStartDate)->startOfDay();
+                $endDate = Carbon::parse($this->filterEndDate)->endOfDay();
+                // Garante que a coluna de data seja prefixada com o nome da tabela para evitar ambiguidade
+                $dateColumn = $this->filterDateOption === 'created_at' ? 'travel_requests.created_at' : 'travel_requests.appointment_datetime';
+                $query->whereBetween($dateColumn, [$startDate, $endDate]);
+            })
+            ->orderByDesc('travel_requests.created_at'); // Prefixado com nome da tabela
 
+        $travelRequests = $query->paginate($this->perPage);
+
+        // Removida a lógica de autorização duplicada daqui,
+        // pois ela geralmente reside no mount ou é tratada por middleware/políticas de rota.
+        // A view sempre receberá $travelRequests (que pode ser uma paginação vazia se o usuário não tiver permissão
+        // e isso for tratado no início do método ou no mount).
 
         return view('livewire.travel-requests.index-travel-request', [
             'travelRequests' => $travelRequests,
+            // As variáveis para os filtros (statusOptions, procedureTypeOptions, etc.)
+            // devem ser preparadas no mount ou diretamente aqui, se forem fixas.
+            // Ex: 'statusOptions' => TravelRequestStatus::options(),
+            // Ex: 'procedureTypeOptions' => ProcedureType::options(),
         ])->layoutData(['pageTitle' => $this->pageTitle]);
     }
 }

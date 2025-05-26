@@ -47,8 +47,9 @@
                 <select wire:model.live="filterRole" id="filterRole"
                         class="mt-1 block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 dark:text-neutral-100 bg-white dark:bg-neutral-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-neutral-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-sky-500 sm:text-sm">
                     <option value=""><?php echo e(__('Todos os Papéis')); ?></option>
-                    <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $availableRoles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $role): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <option value="<?php echo e($role); ?>"><?php echo e(__(ucfirst(str_replace('_', ' ', $role)))); ?></option>
+                    
+                    <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $availableRoles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $roleKey => $roleLabel): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($roleKey); ?>"><?php echo e(__($roleLabel)); ?></option>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><!--[if ENDBLOCK]><![endif]-->
                 </select>
             </div>
@@ -70,6 +71,7 @@
                 <thead class="bg-neutral-100 dark:bg-neutral-800">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300"><?php echo e(__('Nome')); ?></th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300"><?php echo e(__('Microárea')); ?></th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300"><?php echo e(__('Email')); ?></th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300"><?php echo e(__('Unidade')); ?></th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-300"><?php echo e(__('Papel')); ?></th>
@@ -80,6 +82,7 @@
                 <!--[if BLOCK]><![endif]--><?php $__empty_1 = true; $__currentLoopData = $users; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <tr wire:key="user-<?php echo e($user->id); ?>">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100"><?php echo e($user->name); ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100"><?php echo e($user->microarea); ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-300"><?php echo e($user->email); ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-300"><?php echo e($user->unit?->name ?: __('N/A')); ?></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-300"><?php echo e(__(ucfirst(str_replace('_', ' ', $user->role)))); ?></td>

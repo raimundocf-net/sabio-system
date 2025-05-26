@@ -91,20 +91,41 @@
             <flux:navbar.item class="!h-10 [&>div>svg]:size-5" icon="magnifying-glass" href="#" :label="__('Search')" />
         </flux:tooltip>
 
+        {{-- Trecho do seu header.blade.php --}}
+
+        {{-- Menu existente para Importar Cidadãos (JSON) --}}
         @can('import-citizens')
-            <flux:tooltip :content="__('Importar Cidadãos')" position="bottom">
+            <flux:tooltip :content="__('Importar Cidadãos (JSON)')" position="bottom">
                 <flux:navbar.item
                     class="!h-10"
                     :href="route('citizens.import.form')"
                     :current="request()->routeIs('citizens.import.form')"
                     wire:navigate
-                    :label="__('Importar Cidadãos')">
+                    :label="__('Importar JSON')"> {{-- Rótulo ajustado para clareza --}}
                     <x-slot:icon>
                         <span class="icon-[lucide--file-input] w-5 h-5"></span>
                     </x-slot:icon>
                 </flux:navbar.item>
             </flux:tooltip>
+
+
+        {{-- NOVO Menu para Importar Cidadãos PAC (CSV) --}}
+
+        <flux:tooltip :content="__('Importar Cidadãos PAC (CSV)')" position="bottom">
+            <flux:navbar.item
+                class="!h-10"
+                :href="route('citizens.import-pac.show')" {{-- Rota para o formulário CSV --}}
+                :current="request()->routeIs('citizens.import-pac.show') || request()->routeIs('citizens.import-pac.import')" {{-- Verifica a rota atual --}}
+                {{-- wire:navigate --}} {{-- Removido pois é uma rota de controller tradicional --}}
+                :label="__('Importar PAC (CSV)')"> {{-- Novo rótulo --}}
+                <x-slot:icon>
+                    <span class="icon-[lucide--file-spreadsheet] w-5 h-5"></span> {{-- Novo ícone sugerido --}}
+                </x-slot:icon>
+            </flux:navbar.item>
+        </flux:tooltip>
         @endcan
+
+        {{-- Restante do seu header.blade.php --}}
 
         <flux:tooltip :content="__('Repository')" position="bottom">
             <flux:navbar.item

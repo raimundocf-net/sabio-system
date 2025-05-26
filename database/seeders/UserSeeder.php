@@ -21,6 +21,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 1, // Certifique-se que Unit com ID 1 existe
                 'name' => 'Administrador',
+                'microarea' => '',
                 'email' => 'admin@sabio.test',
                 'cns' => '999999999999999',
                 'cbo' => '000000 - ADMINISTRADOR',
@@ -30,6 +31,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2, // Certifique-se que Unit com ID 2 existe
                 'name' => 'Manager',
+                'microarea' => '',
                 'email' => 'manager@sabio.test',
                 'cns' => '888888888888888',
                 'cbo' => '000000 - manager',
@@ -38,7 +40,18 @@ class UserSeeder extends Seeder
             ],
             [
                 'unit_id' => 2,
+                'name' => 'Naira Marcelino de Oliveira ',
+                'microarea' => '',
+                'email' => 'naira@sabio.test',
+                'cns' => '708505368357570',
+                'cbo' => '411010 - ASSISTENTE ADMINISTRATIVO',
+                'role' => 'receptionist', // Usando Enum
+                'password' => 'Password',
+            ],
+            [
+                'unit_id' => 2,
                 'name' => 'MARALUCI DE CASTRO MOREIRA',
+                'microarea' => '',
                 'email' => 'mara@sabio.test',
                 'cns' => '706905139970738',
                 'cbo' => '411010 - ASSISTENTE ADMINISTRATIVO',
@@ -48,6 +61,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 3, // Certifique-se que Unit com ID 3 existe
                 'name' => 'ANA CAROLINA ALVES MIGUEL',
+                'microarea' => '',
                 'email' => 'anacarolina@sabio.test',
                 'cns' => '703405468455000',
                 'cbo' => '411010 - ASSISTENTE ADMINISTRATIVO',
@@ -57,6 +71,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'BRUNO COELHO GONCALVES DE OLIVEIRA',
+                'microarea' => '',
                 'email' => 'bruno@sabio.test',
                 'cns' => '704107174544173',
                 'cbo' => '225124 - MEDICO PEDIATRA',
@@ -84,6 +99,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'JULIANA APARECIDA CANESCHI',
+                'microarea' => '',
                 'email' => 'juliana@sabio.test',
                 'cns' => '700006081804202',
                 'cbo' => '223565 - ENFERMEIRO DA ESTRATEGIA DE SAUDE DA FAMILIA',
@@ -93,6 +109,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'JULIANA DE MOURA ANTONIOL GUERRA',
+                'microarea' => '',
                 'email' => 'juliana.moura@sabio.test',
                 'cns' => '708003899541324',
                 'cbo' => '223565 - ENFERMEIRO DA ESTRATEGIA DE SAUDE DA FAMILIA',
@@ -102,6 +119,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'MARIA APARECIDA GUERRA',
+                'microarea' => '04',
                 'email' => 'tida@sabio.test',
                 'cns' => '700605474763866',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -120,6 +138,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'RAIMUNDO COELHO FERREIRA',
+                'microarea' => '02',
                 'email' => 'raimundo@sabio.test',
                 'cns' => '705409403625491',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -138,6 +157,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'RODOLPHO RUSSI CARUSO',
+                'microarea' => '',
                 'email' => 'rodolpho@sabio.test',
                 'cns' => '700906990086293',
                 'cbo' => '225142 - MEDICO DA ESTRATEGIA DE SAUDE DA FAMILIA',
@@ -147,6 +167,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'ROSANA RODRIGUES CARDOSO',
+                'microarea' => '07',
                 'email' => 'rosana@sabio.test',
                 'cns' => '704801510619747',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -156,6 +177,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'ROSELI DA VEIGA PINTO',
+                'microarea' => '09',
                 'email' => 'roseli@sabio.test',
                 'cns' => '705009003827058',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -165,6 +187,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 2,
                 'name' => 'SARA INACIO DUARTE MENDES',
+                'microarea' => '03',
                 'email' => 'sara@sabio.test',
                 'cns' => '706508315178899',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -173,16 +196,8 @@ class UserSeeder extends Seeder
             ],
             [
                 'unit_id' => 2,
-                'name' => 'VANESSA DA SILVEIRA FREITAS',
-                'email' => 'vanessa@sabio.test',
-                'cns' => '703002846826373',
-                'cbo' => '225133 - MEDICO PSIQUIATRA',
-                'role' => 'doctor', // Usando Enum
-                'password' => 'Password',
-            ],
-            [
-                'unit_id' => 2,
                 'name' => 'VIVIANE DE OLIVEIRA LIMA',
+                'microarea' => '06',
                 'email' => 'viviane@sabio.test',
                 'cns' => '704305528665196',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -190,8 +205,19 @@ class UserSeeder extends Seeder
                 'password' => 'Password',
             ],
             [
+                'unit_id' => 2,
+                'name' => 'VANESSA DA SILVEIRA FREITAS',
+                'microarea' => '',
+                'email' => 'vanessa@sabio.test',
+                'cns' => '703002846826373',
+                'cbo' => '225133 - MEDICO PSIQUIATRA',
+                'role' => 'doctor', // Usando Enum
+                'password' => 'Password',
+            ],
+            [
                 'unit_id' => 3,
                 'name' => 'GEANE DE ARAUJO COSTA REIS',
+                'microarea' => '',
                 'email' => 'geane@sabio.test',
                 'cns' => '708601009173485',
                 'cbo' => '223565 - ENFERMEIRO DA ESTRATEGIA DE SAUDE DA FAMILIA',
@@ -201,6 +227,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 3,
                 'name' => 'ISABELA LIMA CORTEZ',
+                'microarea' => '',
                 'email' => 'isabela@sabio.test',
                 'cns' => '703405501577300',
                 'cbo' => '225142 - MEDICO DA ESTRATEGIA DE SAUDE DA FAMILIA',
@@ -228,6 +255,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 3,
                 'name' => 'POLIANA FONSECA TORMEN',
+                'microarea' => '',
                 'email' => 'poliana@sabio.test',
                 'cns' => '706905172487633',
                 'cbo' => '223565 - ENFERMEIRO DA ESTRATEGIA DE SAUDE DA FAMILIA',
@@ -237,6 +265,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 3,
                 'name' => 'PRICILA SOARES DE OLIVEIRA AMORIM',
+                'microarea' => '05',
                 'email' => 'pricila@sabio.test',
                 'cns' => '702800631740663',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -246,6 +275,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 3,
                 'name' => 'ROSELI DE FREITAS FERREIRA',
+                'microarea' => '10',
                 'email' => 'roseli.freitas@sabio.test',
                 'cns' => '700009536948804',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -255,6 +285,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 3,
                 'name' => 'ROSELI FREIRE DA PAZ SILVEIRA',
+                'microarea' => '',
                 'email' => 'roseli.freire@sabio.test',
                 'cns' => '702308559160920',
                 'cbo' => '223565 - ENFERMEIRO DA ESTRATEGIA DE SAUDE DA FAMILIA',
@@ -264,6 +295,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 3,
                 'name' => 'TAINARA DA CONCEICAO FERNANDES',
+                'microarea' => '01',
                 'email' => 'tainara@sabio.test',
                 'cns' => '706805729542123',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',
@@ -273,6 +305,7 @@ class UserSeeder extends Seeder
             [
                 'unit_id' => 3,
                 'name' => 'VALERIA MARIA MARTINS',
+                'microarea' => '08',
                 'email' => 'valeria@sabio.test',
                 'cns' => '702409510800721',
                 'cbo' => '515105 - AGENTE COMUNITARIO DE SAUDE',

@@ -50,7 +50,7 @@ class Prescription extends Model
     // Relacionamentos (permanecem os mesmos)
     public function citizen()
     {
-        return $this->belongsTo(Citizen::class, 'citizen_id');
+        return $this->belongsTo(CitizenPac::class, 'citizen_id');
     }
 
     public function requester()

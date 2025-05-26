@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Livewire\Prescriptions\Request;
+
+use App\Models\Citizen;
+use Livewire\Component;
+use Livewire\Attributes\Layout;
+use Illuminate\Support\Facades\Validator as LaravelValidator; // Alias para não confundir com o Validator do Livewire Attributes
+
+#[Layout('components.layouts.app')]
+class Json_SearchCitizenStep extends Component
+{
+    public string $search = '';
+    public string $searchMother = '';
+    public $results = null; // Pode ser uma coleção ou null
+    public string $pageTitle = "Solicitar Receita: Buscar Cidadão";
+
+    // Não usaremos as rules do Livewire aqui, faremos a validação manualmente
+    // para lidar com a lógica condicional de forma mais clara no método.
+
+    public function searchCitizen()
+    {
+        $this->results = null; // Limpa resultados anteriores
+        session()->forget('info_message'); // Limpa mensagens anteriores
+        $this->resetErrorBag(); // Limpa erros de validação anteriores
+
+        $trimmedSearch = trim($this->search);
+        $trimmedSearchMother = trim($this->searchMother);
+
+        // Validação manual
+        if (!empty($trimmedSearchMother)) {
+            if (strlen($trimmedSearchMother) < 3) {
+                $this->addError('searchMother', 'O nome da mãe deve ter pelo menos 3 caracteres.');
+                return;
+            }
+            // Se searchMother está preenchido, search é ignorado e não precisa ser validado como obrigatório.
+        } elseif (!empty($trimmedSearch)) {
+            if (strlen($trimmedSearch) < 3) {
+                $this->addError('search', 'A busca por cidadão deve ter pelo menos 3 caracteres.');
+                return;
+            }
+        } else {
+            // Nenhum dos campos foi preenchido (ou apenas espaços)
+            $this->addError('search', 'Preencha o campo de busca principal ou o nome da mãe.');
+            return;
+        }
+
+        $query = Citizen::query();
+
+        if (!empty($trimmedSearchMother)) {
+            // Busca prioritariamente pelo nome da mãe, se preenchido
+            $motherTerm = "%{$trimmedSearchMother}%";
+            $query->whereRaw('public.unaccent_lower(name_mother) LIKE public.unaccent_lower(?)', [$motherTerm]);
+        } else {
+            // Senão, busca pelo campo principal (nome, cpf, cns do cidadão)
+            $term = "%{$trimmedSearch}%";
+            $query->where(function ($q) use ($term) {
+                // Os nomes das colunas (name, cpf, cns) devem corresponder à sua tabela 'citizens'
+                $q->whereRaw('public.unaccent_lower(name) LIKE public.unaccent_lower(?)', [$term])
+                    ->orWhereRaw('public.unaccent_lower(cpf) LIKE public.unaccent_lower(?)', [$term])
+                    ->orWhereRaw('public.unaccent_lower(cns) LIKE public.unaccent_lower(?)', [$term]);
+            });
+        }
+
+        $this->results = $query->orderBy('name')->limit(10)->get(); // Adicionado orderBy para consistência
+
+        if ($this->results->isEmpty()) {
+            session()->flash('info_message', 'Nenhum cidadão encontrado com os critérios fornecidos.');
+        }
+    }
+
+    public function clearSearch()
+    {
+        $this->search = '';
+        $this->searchMother = '';
+        $this->results = null;
+        $this->resetErrorBag();
+        session()->forget('info_message');
+    }
+
+    public function render()
+    {
+        return view('livewire.prescriptions.request.search-citizen-step');
+    }
+}

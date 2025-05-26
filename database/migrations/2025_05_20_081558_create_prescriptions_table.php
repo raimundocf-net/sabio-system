@@ -13,7 +13,7 @@ return new class extends Migration
             $table->id();
 
             // Relacionamentos Essenciais
-            $table->foreignId('citizen_id')->constrained('citizens')->onDelete('cascade');
+            $table->foreignId('citizen_id')->constrained('citizen_pacs')->onDelete('cascade');
             $table->foreignId('user_id')->comment('Usuário que solicitou/registrou a receita')->constrained('users')->onDelete('restrict');
             $table->foreignId('unit_id')->comment('Unidade de saúde solicitante')->constrained('units')->onDelete('restrict');
             $table->foreignId('doctor_id')->nullable()->comment('Médico atribuído ou que processou')->constrained('users')->onDelete('set null');

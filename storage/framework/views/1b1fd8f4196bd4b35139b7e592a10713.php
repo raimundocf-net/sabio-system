@@ -16,8 +16,8 @@
 
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', \App\Models\TravelRequest::class)): ?>
                 <div class="sm:hidden">
-                    <a href="<?php echo e(route('travel-requests.create.search-citizen')); ?>" 
-                    wire:navigate
+                    <a href="<?php echo e(route('travel-requests.create.search-citizen')); ?>"
+                       wire:navigate
                        class="ml-2 inline-flex items-center justify-center gap-1 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-sky-500 dark:hover:bg-sky-400 px-3 py-1.5 rounded-md shadow-sm transition-colors duration-150">
                         <span class="icon-[mdi--plus-box-outline] w-5 h-5"></span>
                         <?php echo e(__('Nova')); ?>
@@ -65,7 +65,7 @@
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><!--[if ENDBLOCK]><![endif]-->
                 </select>
             </div>
-            <div class="xl:col-span-1"> 
+            <div class="xl:col-span-1">
                 <label for="perPage" class="sr-only"><?php echo e(__('Itens por página')); ?></label>
                 <select wire:model.live="perPage" id="perPage" title="<?php echo e(__('Itens por página')); ?>" class="block w-full rounded-md border-gray-300 dark:border-neutral-600 py-1.5 pl-3 pr-8 text-sm text-gray-700 dark:text-neutral-200 bg-white dark:bg-neutral-700 shadow-sm focus:border-indigo-500 dark:focus:border-sky-500 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-sky-500">
                     <option value="10">10 <?php echo e(__('por pág.')); ?></option>
@@ -93,8 +93,8 @@
 
         <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', \App\Models\TravelRequest::class)): ?>
             <div class="hidden sm:flex w-full sm:w-auto sm:justify-end mt-3 sm:mt-0 xl:absolute xl:right-8 xl:top-[3.75rem]">
-                <a href="<?php echo e(route('travel-requests.create.search-citizen')); ?>" 
-                wire:navigate
+                <a href="<?php echo e(route('travel-requests.create.search-citizen')); ?>"
+                   wire:navigate
                    class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-sky-500 dark:hover:bg-sky-400 px-3 py-1.5 rounded-md shadow-sm transition-colors duration-150">
                     <span class="icon-[mdi--plus-box-outline] w-5 h-5"></span>
                     <?php echo e(__('Nova Solicitação')); ?>
@@ -123,58 +123,60 @@
                 </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-neutral-800 divide-y divide-gray-200 dark:divide-neutral-700">
-                <!--[if BLOCK]><![endif]--><?php $__empty_1 = true; $__currentLoopData = $travelRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $travelRequestItem): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?> 
-                <tr wire:key="travel-request-row-<?php echo e($travelRequestItem->id); ?>" class="hover:bg-gray-50 dark:hover:bg-neutral-700/30 transition-colors duration-150">
-                    <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-neutral-100"><?php echo e($travelRequestItem->id); ?></td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
-                        <div class="flex flex-col">
-                            <span><?php echo e($travelRequestItem->citizen?->name ?? __('N/D')); ?></span>
-                            <span class="text-xs text-gray-500 dark:text-neutral-400">
-                                    CPF: <?php echo e($travelRequestItem->citizen?->cpf ?? __('N/D')); ?>
-
-                                </span>
-                        </div>
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
-                        <?php echo e($travelRequestItem->destination_city); ?> / <?php echo e($travelRequestItem->destination_state); ?>
-
-                        <div class="text-xs text-gray-500 dark:text-neutral-400 truncate max-w-xs" title="<?php echo e($travelRequestItem->destination_address); ?>"><?php echo e(Str::limit($travelRequestItem->destination_address, 30)); ?></div>
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
-                        <?php echo e($travelRequestItem->appointment_datetime ? \Carbon\Carbon::parse($travelRequestItem->appointment_datetime)->format('d/m/Y H:i') : __('N/D')); ?>
-
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
-                        <?php echo e($travelRequestItem->procedure_type?->label() ?? ($travelRequestItem->procedure_type ?: __('N/D'))); ?>
-
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm">
-                            <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo e($travelRequestItem->status?->badgeClasses() ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
-                                <?php echo e($travelRequestItem->status?->label() ?? ($travelRequestItem->status ?: __('N/D'))); ?>
+                <!--[if BLOCK]><![endif]--><?php $__empty_1 = true; $__currentLoopData = $travelRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $travelRequestItem): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                    <tr wire:key="travel-request-row-<?php echo e($travelRequestItem->id); ?>" class="hover:bg-gray-50 dark:hover:bg-neutral-700/30 transition-colors duration-150">
+                        <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-neutral-100"><?php echo e($travelRequestItem->id); ?></td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
+                            <div class="flex flex-col">
+                                
+                                <span><?php echo e($travelRequestItem->citizen?->nome_do_cidadao ?? __('N/D')); ?></span>
+                                <span class="text-xs text-gray-500 dark:text-neutral-400">
+                                CPF: <?php echo e($travelRequestItem->citizen?->cpf ?? __('N/D')); ?>
 
                             </span>
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300"><?php echo e($travelRequestItem->requester?->name ?? __('N/D')); ?></td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300"><?php echo e($travelRequestItem->created_at ? $travelRequestItem->created_at->format('d/m/Y H:i') : __('N/D')); ?></td>
-                    <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium space-x-1 rtl:space-x-reverse">
-                        <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('update', $travelRequestItem)): ?>
-                            <a href="<?php echo e(route('travel-requests.edit', $travelRequestItem->id)); ?>"
-                               wire:navigate title="<?php echo e(__('Editar Solicitação')); ?>"
-                               class="inline-flex items-center justify-center p-1.5 rounded-full text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-neutral-600 transition-colors">
-                                <span class="icon-[tabler--pencil] w-5 h-5"></span>
-                            </a>
-                        <?php endif; ?>
-                        <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('delete', $travelRequestItem)): ?>
-                            <!--[if BLOCK]><![endif]--><?php if(!in_array($travelRequestItem->status, [\App\Enums\TravelRequestStatus::CANCELLED_BY_USER, \App\Enums\TravelRequestStatus::CANCELLED_BY_ADMIN, \App\Enums\TravelRequestStatus::SCHEDULED])): ?>
-                                <button wire:click="openCancelModal(<?php echo e($travelRequestItem->id); ?>)"
-                                        title="<?php echo e(__('Cancelar Solicitação')); ?>"
-                                        class="inline-flex items-center justify-center p-1.5 rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-neutral-600 transition-colors">
-                                    <span class="icon-[mdi--cancel-bold] w-5 h-5"></span>
-                                </button>
-                            <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
-                        <?php endif; ?>
-                    </td>
-                </tr>
+                            </div>
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
+                            <?php echo e($travelRequestItem->destination_city); ?> / <?php echo e($travelRequestItem->destination_state); ?>
+
+                            <div class="text-xs text-gray-500 dark:text-neutral-400 truncate max-w-xs" title="<?php echo e($travelRequestItem->destination_address); ?>"><?php echo e(Str::limit($travelRequestItem->destination_address, 30)); ?></div>
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
+                            <?php echo e($travelRequestItem->appointment_datetime ? \Carbon\Carbon::parse($travelRequestItem->appointment_datetime)->format('d/m/Y H:i') : __('N/D')); ?>
+
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300">
+                            <?php echo e($travelRequestItem->procedure_type?->label() ?? ($travelRequestItem->procedure_type ?: __('N/D'))); ?>
+
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm">
+                        <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo e($travelRequestItem->status?->badgeClasses() ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
+                            <?php echo e($travelRequestItem->status?->label() ?? ($travelRequestItem->status ?: __('N/D'))); ?>
+
+                        </span>
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300"><?php echo e($travelRequestItem->requester?->name ?? __('N/D')); ?></td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-neutral-300"><?php echo e($travelRequestItem->created_at ? $travelRequestItem->created_at->format('d/m/Y H:i') : __('N/D')); ?></td>
+                        <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium space-x-1 rtl:space-x-reverse">
+                            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('update', $travelRequestItem)): ?>
+                                <a href="<?php echo e(route('travel-requests.edit', $travelRequestItem->id)); ?>"
+                                   wire:navigate title="<?php echo e(__('Editar Solicitação')); ?>"
+                                   class="inline-flex items-center justify-center p-1.5 rounded-full text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-neutral-600 transition-colors">
+                                    <span class="icon-[tabler--pencil] w-5 h-5"></span>
+                                </a>
+                            <?php endif; ?>
+                            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('delete', $travelRequestItem)): ?>
+                                
+                                <!--[if BLOCK]><![endif]--><?php if(!in_array($travelRequestItem->status?->value, [\App\Enums\TravelRequestStatus::CANCELLED_BY_USER->value, \App\Enums\TravelRequestStatus::CANCELLED_BY_ADMIN->value, \App\Enums\TravelRequestStatus::SCHEDULED->value])): ?>
+                                    <button wire:click="openCancelModal(<?php echo e($travelRequestItem->id); ?>)"
+                                            title="<?php echo e(__('Cancelar Solicitação')); ?>"
+                                            class="inline-flex items-center justify-center p-1.5 rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-neutral-600 transition-colors">
+                                        <span class="icon-[mdi--cancel-bold] w-5 h-5"></span>
+                                    </button>
+                                <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
+                            <?php endif; ?>
+                        </td>
+                    </tr>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
                         <td colspan="9" class="px-4 py-16 text-center text-sm text-gray-500 dark:text-neutral-400">
@@ -218,7 +220,8 @@
                             <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-neutral-100" id="modal-title-cancel-request"><?php echo e(__('Confirmar Cancelamento da Solicitação')); ?> #<?php echo e($cancellingTravelRequest->id); ?></h3>
                             <div class="mt-2">
                                 <p class="text-sm text-gray-600 dark:text-neutral-300">
-                                    <?php echo e(__('Paciente:')); ?> <strong><?php echo e($cancellingTravelRequest->citizen?->name); ?></strong><br>
+                                    
+                                    <?php echo e(__('Paciente:')); ?> <strong><?php echo e($cancellingTravelRequest->citizen?->nome_do_cidadao ?? __('N/D')); ?></strong><br>
                                     <?php echo e(__('Destino:')); ?> <strong><?php echo e($cancellingTravelRequest->destination_city); ?> - <?php echo e($cancellingTravelRequest->destination_state); ?></strong><br>
                                     <?php echo e(__('Compromisso:')); ?> <strong><?php echo e($cancellingTravelRequest->appointment_datetime ? \Carbon\Carbon::parse($cancellingTravelRequest->appointment_datetime)->isoFormat('LLLL') : 'N/D'); ?></strong>
                                 </p>

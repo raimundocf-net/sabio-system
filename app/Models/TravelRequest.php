@@ -54,7 +54,7 @@ class TravelRequest extends Model
 
     public function citizen(): BelongsTo
     {
-        return $this->belongsTo(Citizen::class);
+        return $this->belongsTo(CitizenPac::class);
     }
 
     public function requester(): BelongsTo

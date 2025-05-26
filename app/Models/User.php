@@ -20,13 +20,14 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'unit_id',
-        'name',
-        'email',
-        'password',
-        'role',
-        'cns',
-        'cbo',
+        'unit_id', //
+        'name', //
+        'microarea', //
+        'email', //
+        'password', //
+        'role', //
+        'cns', //
+        'cbo', //
     ];
 
     /**
@@ -77,7 +78,20 @@ class User extends Authenticatable
      */
     public static function getAvailableRoles(): array
     {
-        return ['acs', 'nurse', 'doctor', 'receptionist', 'nursing_technician', 'admin', 'manager'];
+        return [
+            'admin' => 'Administrador',
+            'manager' => 'Gerente',
+            'doctor' => 'Médico(a)',
+            'nurse' => 'Enfermeiro(a)',
+            'nursing_technician' => 'Técnico(a) de Enfermagem',
+            'receptionist' => 'Recepcionista',
+            'acs' => 'Agente Comunitário de Saúde (ACS)',
+        ];
+    }
+
+    public static function getRoleKeys(): array
+    {
+        return array_keys(self::getAvailableRoles());
     }
 
     /**

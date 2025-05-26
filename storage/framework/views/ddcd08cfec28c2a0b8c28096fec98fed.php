@@ -422,27 +422,30 @@
 <?php unset($__componentOriginalf5109f209df079b3a83484e1e6310749); ?>
 <?php endif; ?>
 
+        
+
+        
         <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('import-citizens')): ?>
             <?php if (isset($component)) { $__componentOriginalf5109f209df079b3a83484e1e6310749 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalf5109f209df079b3a83484e1e6310749 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'e60dd9d2c3a62d619c9acb38f20d5aa5::tooltip.index','data' => ['content' => __('Importar Cidadãos'),'position' => 'bottom']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'e60dd9d2c3a62d619c9acb38f20d5aa5::tooltip.index','data' => ['content' => __('Importar Cidadãos (JSON)'),'position' => 'bottom']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('flux::tooltip'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['content' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Importar Cidadãos')),'position' => 'bottom']); ?>
+<?php $component->withAttributes(['content' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Importar Cidadãos (JSON)')),'position' => 'bottom']); ?>
                 <?php if (isset($component)) { $__componentOriginalc4cbba45ed073bedf6d5fbbd59b58e48 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalc4cbba45ed073bedf6d5fbbd59b58e48 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'e60dd9d2c3a62d619c9acb38f20d5aa5::navbar.item','data' => ['class' => '!h-10','href' => route('citizens.import.form'),'current' => request()->routeIs('citizens.import.form'),'wire:navigate' => true,'label' => __('Importar Cidadãos')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'e60dd9d2c3a62d619c9acb38f20d5aa5::navbar.item','data' => ['class' => '!h-10','href' => route('citizens.import.form'),'current' => request()->routeIs('citizens.import.form'),'wire:navigate' => true,'label' => __('Importar JSON')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('flux::navbar.item'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['class' => '!h-10','href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('citizens.import.form')),'current' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('citizens.import.form')),'wire:navigate' => true,'label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Importar Cidadãos'))]); ?>
+<?php $component->withAttributes(['class' => '!h-10','href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('citizens.import.form')),'current' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('citizens.import.form')),'wire:navigate' => true,'label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Importar JSON'))]); ?> 
                      <?php $__env->slot('icon', null, []); ?> 
                         <span class="icon-[lucide--file-input] w-5 h-5"></span>
                      <?php $__env->endSlot(); ?>
@@ -466,7 +469,56 @@
 <?php $component = $__componentOriginalf5109f209df079b3a83484e1e6310749; ?>
 <?php unset($__componentOriginalf5109f209df079b3a83484e1e6310749); ?>
 <?php endif; ?>
+
+
+        
+
+        <?php if (isset($component)) { $__componentOriginalf5109f209df079b3a83484e1e6310749 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalf5109f209df079b3a83484e1e6310749 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'e60dd9d2c3a62d619c9acb38f20d5aa5::tooltip.index','data' => ['content' => __('Importar Cidadãos PAC (CSV)'),'position' => 'bottom']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('flux::tooltip'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['content' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Importar Cidadãos PAC (CSV)')),'position' => 'bottom']); ?>
+            <?php if (isset($component)) { $__componentOriginalc4cbba45ed073bedf6d5fbbd59b58e48 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalc4cbba45ed073bedf6d5fbbd59b58e48 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'e60dd9d2c3a62d619c9acb38f20d5aa5::navbar.item','data' => ['class' => '!h-10','href' => route('citizens.import-pac.show'),'current' => request()->routeIs('citizens.import-pac.show') || request()->routeIs('citizens.import-pac.import'),'label' => __('Importar PAC (CSV)')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('flux::navbar.item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['class' => '!h-10','href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('citizens.import-pac.show')),'current' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('citizens.import-pac.show') || request()->routeIs('citizens.import-pac.import')),'label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Importar PAC (CSV)'))]); ?> 
+                 <?php $__env->slot('icon', null, []); ?> 
+                    <span class="icon-[lucide--file-spreadsheet] w-5 h-5"></span> 
+                 <?php $__env->endSlot(); ?>
+             <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalc4cbba45ed073bedf6d5fbbd59b58e48)): ?>
+<?php $attributes = $__attributesOriginalc4cbba45ed073bedf6d5fbbd59b58e48; ?>
+<?php unset($__attributesOriginalc4cbba45ed073bedf6d5fbbd59b58e48); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalc4cbba45ed073bedf6d5fbbd59b58e48)): ?>
+<?php $component = $__componentOriginalc4cbba45ed073bedf6d5fbbd59b58e48; ?>
+<?php unset($__componentOriginalc4cbba45ed073bedf6d5fbbd59b58e48); ?>
+<?php endif; ?>
+         <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalf5109f209df079b3a83484e1e6310749)): ?>
+<?php $attributes = $__attributesOriginalf5109f209df079b3a83484e1e6310749; ?>
+<?php unset($__attributesOriginalf5109f209df079b3a83484e1e6310749); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalf5109f209df079b3a83484e1e6310749)): ?>
+<?php $component = $__componentOriginalf5109f209df079b3a83484e1e6310749; ?>
+<?php unset($__componentOriginalf5109f209df079b3a83484e1e6310749); ?>
+<?php endif; ?>
         <?php endif; ?>
+
+        
 
         <?php if (isset($component)) { $__componentOriginalf5109f209df079b3a83484e1e6310749 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalf5109f209df079b3a83484e1e6310749 = $attributes; } ?>
