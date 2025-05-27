@@ -4,6 +4,7 @@ namespace App\Livewire\Prescriptions;
 
 use App\Models\Prescription;
 use App\Enums\PrescriptionStatus;
+use App\Models\User; // Adicionado para consultar utilizadores ACS
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
@@ -19,6 +20,7 @@ class ListPrescriptions extends Component
     public string $pageTitle = "Solicitações de Receitas";
 
     public ?string $filterStatus = null;
+    public ?string $filterAcsId = null; // Novo filtro para ACS
     public string $searchTerm = '';
 
     // Modal de Cancelamento
@@ -56,10 +58,15 @@ class ListPrescriptions extends Component
 
     public function mount()
     {
-        // ... (código existente do mount)
+        // Opcional: Pode inicializar $filterAcsId aqui se necessário
     }
 
     public function updatedFilterStatus()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterAcsId() // Método para resetar página ao mudar filtro ACS
     {
         $this->resetPage();
     }
@@ -69,7 +76,7 @@ class ListPrescriptions extends Component
         $this->resetPage();
     }
 
-    // --- Lógica para Cancelamento (existente) ---
+    // --- Lógica para Cancelamento ---
     public function openCancelModal(Prescription $prescription)
     {
         try {
@@ -247,12 +254,12 @@ class ListPrescriptions extends Component
 
     public function render()
     {
-        // ... (código de renderização existente) ...
         $user = Auth::user();
         if (!$user) {
             return view('livewire.prescriptions.list-prescriptions', [
                 'prescriptions' => collect()->paginate(12),
                 'statusOptions' => PrescriptionStatus::options(),
+                'acsUsers' => [], // Adicionado para evitar erro se user for nulo
             ])->layoutData(['pageTitle' => $this->pageTitle]);
         }
 
@@ -285,7 +292,7 @@ class ListPrescriptions extends Component
             $searchTermSQL = '%' . trim($this->searchTerm) . '%';
             $query->where(function ($subQuery) use ($searchTermSQL) {
                 $subQuery->whereHas('citizen', function ($q) use ($searchTermSQL) {
-                    $q->whereRaw('public.unaccent_lower(name) LIKE public.unaccent_lower(?)', [$searchTermSQL])
+                    $q->whereRaw('public.unaccent_lower(nome_do_cidadao) LIKE public.unaccent_lower(?)', [$searchTermSQL])
                         ->orWhereRaw('public.unaccent_lower(cpf) LIKE public.unaccent_lower(?)', [$searchTermSQL])
                         ->orWhereRaw('public.unaccent_lower(cns) LIKE public.unaccent_lower(?)', [$searchTermSQL]);
                 })->orWhereHas('requester', function ($q) use ($searchTermSQL) {
@@ -294,19 +301,42 @@ class ListPrescriptions extends Component
             });
         }
 
+        // Filtro de ACS e lógica de permissão existente
         if ($user->hasRole('acs')) {
             $query->where('user_id', $user->id);
+            // Se o utilizador logado é um ACS, o filtro $filterAcsId é ignorado ou só mostraria ele mesmo.
+            // Para simplificar, se um ACS está logado, ele só vê as suas próprias prescrições e o filtro $filterAcsId não se aplicará para outros ACS.
+        } elseif ($this->filterAcsId) { // Aplicar filtro ACS se não for um ACS e se um ID de ACS for selecionado
+            $query->where('user_id', $this->filterAcsId);
         } elseif (!$user->hasRole('admin') && !$user->hasRole('manager')) {
+            // Utilizadores que não são admin/manager e não são ACS (ex: doctor, nurse)
             if ($user->unit_id) {
                 $query->where('unit_id', $user->unit_id);
             } else {
+                // Se não tiver unit_id e não for admin/manager/acs, não mostra nada
                 $query->whereRaw('1 = 0');
             }
         }
+        // Se for admin ou manager e $filterAcsId não estiver definido, vê todas as prescrições (ou as da sua unidade se a lógica futura o exigir).
+
+
+        $acsUsersList = [];
+        // Apenas admin e manager podem usar o filtro ACS livremente.
+        // Outros papéis (exceto ACS) não verão este filtro populado ou ele não terá efeito se forçado.
+        // ACS já têm a sua visão filtrada.
+        if ($user->hasRole('admin') || $user->hasRole('manager')) {
+            $acsUsersList = User::where('role', 'acs')->orderBy('name')->pluck('name', 'id')->toArray();
+        } elseif ($user->hasRole('acs')) {
+            // Um ACS pode ver a si mesmo no filtro, mas não terá efeito prático.
+            // Poderia ser uma lista vazia ou apenas o próprio ACS. Para consistência:
+            $acsUsersList = User::where('id', $user->id)->pluck('name', 'id')->toArray();
+        }
+
 
         return view('livewire.prescriptions.list-prescriptions', [
             'prescriptions' => $query->paginate(12),
             'statusOptions' => PrescriptionStatus::options(),
+            'acsUsers' => $acsUsersList, // Passa a lista de ACS para a view
         ]);
     }
 }

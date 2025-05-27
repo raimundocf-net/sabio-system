@@ -1,4 +1,3 @@
-{{-- resources/views/livewire/partials/session-messages.blade.php --}}
 @if (session('status'))
     <div class="mb-4 rounded-md bg-green-100 p-4 dark:bg-green-800/30">
         <div class="flex">

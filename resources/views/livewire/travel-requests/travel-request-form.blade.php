@@ -127,7 +127,7 @@
                                         <div class="mt-2">
                                             <select wire:model.defer="form.destination_state" id="form_destination_state"
                                                     class="block w-full rounded-md border-0 py-2.5 pl-3 pr-10 text-gray-900 dark:text-neutral-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-neutral-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-sky-500 sm:text-sm sm:leading-6 bg-white dark:bg-neutral-700 @error('form.destination_state') ring-red-500 dark:ring-red-400 @enderror">
-                                                <option value="MG">{{__('MG')}}</option>
+                                                <option value="MG" selected>{{__('Minas Gerais')}}</option>
                                                 @foreach($stateOptions as $value => $label)
                                                     <option value="{{ $value }}">{{ $label }}</option>
                                                 @endforeach
