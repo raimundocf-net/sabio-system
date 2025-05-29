@@ -36,7 +36,7 @@ class TravelRequestForm extends Component
         'companion_cpf' => '',
         'destination_address' => '',
         'destination_city' => '',
-        'destination_state' => '',
+        'destination_state' => 'MG',
         'reason' => '',
         'procedure_type' => '',
         'departure_location' => '',

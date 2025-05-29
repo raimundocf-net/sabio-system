@@ -219,7 +219,6 @@ $message = $__bag->first($__errorArgs[0]); ?> ring-red-500 dark:ring-red-400 <?p
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>">
-                                                <option value="MG" selected><?php echo e(__('Minas Gerais')); ?></option>
                                                 <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $stateOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $value => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                                     <option value="<?php echo e($value); ?>"><?php echo e($label); ?></option>
                                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><!--[if ENDBLOCK]><![endif]-->
